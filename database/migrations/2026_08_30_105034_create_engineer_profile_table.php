@@ -22,10 +22,10 @@ return new class extends Migration
             $table->text('bio')->nullable();
             $table->timestamp('created_at')->nullable();
             $table->timestamp('updated_at')->nullable();
-            $table->bigInteger('profile_photo');
-            $table->bigInteger('approval_status');
-            $table->bigInteger('rejection_reason');
-            $table->bigInteger('approved_at');
+            $table->string('profile_photo')->nullable();
+            $table->enum('approval_status', ['pending', 'approved', 'rejected'])->default('pending');
+            $table->string('rejection_reason')->nullable();
+            $table->timestamp('approved_at')->nullable();
         });
 
         Schema::enableForeignKeyConstraints();

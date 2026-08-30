@@ -26,10 +26,10 @@ return new class extends Migration
             $table->timestamp('updated_at')->nullable();
             $table->string('company_logo_path');
             $table->enum('approval_status', [""]);
-            $table->string('rejection_reason');
+            $table->string('rejection_reason')->nullable();
             $table->enum('store_type', ["wholesaler","retailer","authorized_agent"]);
-            $table->bigInteger('address_details');
-            $table->bigInteger('approved_at');
+            $table->text('address_details');
+            $table->timestamp('approved_at')->nullable();
             $table->string('location_coordinates');
         });
 

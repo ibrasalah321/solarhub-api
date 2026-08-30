@@ -21,7 +21,7 @@ return new class extends Migration
             $table->string('value', 255);
             $table->timestamp('created_at')->nullable();
             $table->timestamp('updated_at')->nullable();
-            $table->bigInteger('unit');
+            $table->string('unit')->nullable();
         });
 
         Schema::enableForeignKeyConstraints();

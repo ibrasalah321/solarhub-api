@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('website', 255)->nullable();
             $table->timestamp('created_at')->nullable();
             $table->timestamp('updated_at')->nullable();
-            $table->bigInteger('is_active');
+            $table->boolean('is_active')->default(true);
         });
 
         Schema::enableForeignKeyConstraints();

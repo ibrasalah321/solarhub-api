@@ -18,6 +18,9 @@ return new class extends Migration
             $table->unsignedBigInteger('service_request_id');
             $table->foreign('service_request_id')->references('id')->on('service_requests');
             $table->unsignedBigInteger('engineer_id');
+
+            $table->foreign('engineer_id')
+                ->references('id')->on('engineer_profile');
             $table->decimal('proposed_cost', 10, 2);
             $table->unsignedInteger('execution_time_days');
             $table->text('technical_proposal');

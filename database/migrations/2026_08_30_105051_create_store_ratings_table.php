@@ -16,9 +16,11 @@ return new class extends Migration
         Schema::create('store_ratings', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('order_store_id')->unique();
-            $table->foreign('order_store_id')->references('id')->on('order_Stores');
+            $table->foreign('order_store_id')->references('id')->on('order_stores');
             $table->unsignedBigInteger('customer_id');
             $table->unsignedBigInteger('store_id');
+            $table->foreign('customer_id')->references('id')->on('users');
+            $table->foreign('store_id')->references('id')->on('stores');
             $table->unsignedTinyInteger('rating');
             $table->text('comment')->nullable();
             $table->boolean('is_approved')->nullable()->default(true);

@@ -16,6 +16,9 @@ return new class extends Migration
         Schema::create('portfolio_items', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('engineer_id');
+
+            $table->foreign('engineer_id')
+                ->references('id')->on('engineer_profile');
             $table->unsignedBigInteger('governorate_id')->nullable();
             $table->foreign('governorate_id')->references('id')->on('governorates');
             $table->string('project_title', 150);
@@ -25,9 +28,9 @@ return new class extends Migration
             $table->string('image_path', 255);
             $table->timestamp('created_at')->nullable();
             $table->timestamp('updated_at')->nullable();
-            $table->bigInteger('service_type_id');
+            $table->unsignedBigInteger('service_type_id');
             $table->foreign('service_type_id')->references('id')->on('service_types');
-            $table->bigInteger('file_path');
+            $table->string('file_path')->nullable();
             $table->string('location_coordinates');
             $table->string('address_text');
         });

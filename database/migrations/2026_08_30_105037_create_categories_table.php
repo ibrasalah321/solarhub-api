@@ -18,7 +18,7 @@ return new class extends Migration
             $table->unsignedBigInteger('parent_id')->nullable();
             $table->foreign('parent_id')->references('id')->on('categories');
             $table->string('name_ar', 100);
-            $table->bigInteger('name_en');
+            $table->string('name_en');
             $table->string('slug', 120)->unique();
             $table->string('icon', 255)->nullable();
             $table->timestamp('created_at')->nullable();
