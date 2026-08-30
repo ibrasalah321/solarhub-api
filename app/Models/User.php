@@ -2,48 +2,93 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, SoftDeletes;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
     protected $fillable = [
+        'governorate_id',
         'name',
         'email',
+        'phone',
         'password',
+        'user_type',
+        'address',
+        'status',
+        'default_coordinates',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'created_at' => 'datetime',
+            'updated_at' => 'datetime',
+            'deleted_at' => 'datetime',
         ];
+    }
+
+    public function governorate(): BelongsTo
+    {
+        return $this->belongsTo(Governorate::class, 'governorate_id');
+    }
+
+    public function store(): HasOne
+    {
+        return $this->hasOne(Store::class, 'user_id');
+    }
+
+    public function engineerProfile(): HasOne
+    {
+        return $this->hasOne(EngineerProfile::class, 'user_id');
+    }
+
+    public function cart(): HasOne
+    {
+        return $this->hasOne(Cart::class, 'user_id');
+    }
+
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class, 'user_id');
+    }
+
+    public function serviceRequests(): HasMany
+    {
+        return $this->hasMany(ServiceRequest::class, 'user_id');
+    }
+
+    public function offers(): HasMany
+    {
+        return $this->hasMany(Offer::class, 'engineer_id');
+    }
+
+    public function storeRatings(): HasMany
+    {
+        return $this->hasMany(StoreRating::class, 'user_id');
+    }
+
+    public function engineerRatings(): HasMany
+    {
+        return $this->hasMany(EngineerRating::class, 'user_id');
+    }
+
+    public function notifications(): HasMany
+    {
+        return $this->hasMany(Notification::class, 'user_id');
     }
 }
