@@ -6,11 +6,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Store extends Model
 {
     use HasFactory;
+
+    protected $table = 'stores';
 
     protected $fillable = [
         'user_id',
@@ -23,11 +24,16 @@ class Store extends Model
         'approval_status',
         'rejection_reason',
         'store_type',
+        'address_details',
+        'location_coordinates',
+        'approved_at',
     ];
 
     protected function casts(): array
     {
         return [
+            'user_id' => 'integer',
+            'approved_at' => 'datetime',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
         ];

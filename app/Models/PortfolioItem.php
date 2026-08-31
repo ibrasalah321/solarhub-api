@@ -14,16 +14,24 @@ class PortfolioItem extends Model
 
     protected $fillable = [
         'engineer_id',
-        'title',
+        'governorate_id',
+        'service_type_id',
+        'project_title',
+        'project_type',
+        'system_capacity',
         'description',
-        'image',
-        'project_date',
+        'image_path',
+        'file_path',
+        'address_text',
+        'location_coordinates',
     ];
 
     protected function casts(): array
     {
         return [
-            'project_date' => 'date',
+            'engineer_id' => 'integer',
+            'governorate_id' => 'integer',
+            'service_type_id' => 'integer',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
         ];
@@ -31,9 +39,16 @@ class PortfolioItem extends Model
 
     public function engineer(): BelongsTo
     {
-        return $this->belongsTo(
-            EngineerProfile::class,
-            'engineer_id'
-        );
+        return $this->belongsTo(EngineerProfile::class, 'engineer_id');
+    }
+
+    public function governorate(): BelongsTo
+    {
+        return $this->belongsTo(Governorate::class, 'governorate_id');
+    }
+
+    public function serviceType(): BelongsTo
+    {
+        return $this->belongsTo(ServiceType::class, 'service_type_id');
     }
 }

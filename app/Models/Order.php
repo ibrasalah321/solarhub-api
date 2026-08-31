@@ -19,9 +19,9 @@ class Order extends Model
         'delivery_governorate_id',
         'total_amount',
         'delivery_address',
+        'delivery_coordinates',
         'payment_method',
         'status',
-        'delivery_coordinates',
     ];
 
     protected function casts(): array
