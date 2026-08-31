@@ -20,10 +20,10 @@ class ServiceRequest extends Model
         'governorate_id',
         'system_capacity_estimate',
         'location_details',
+        'location_coordinates',
         'description',
         'attachment_file',
         'status',
-        'location_coordinates',
     ];
 
     protected function casts(): array
