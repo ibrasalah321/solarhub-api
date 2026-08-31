@@ -14,6 +14,8 @@ class User extends Authenticatable
 {
     use HasFactory, Notifiable, SoftDeletes;
 
+    protected $table = 'users';
+
     protected $fillable = [
         'governorate_id',
         'name',
@@ -22,8 +24,8 @@ class User extends Authenticatable
         'password',
         'user_type',
         'address',
-        'status',
         'default_coordinates',
+        'status',
     ];
 
     protected $hidden = [
@@ -34,6 +36,7 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
+            'governorate_id' => 'integer',
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'created_at' => 'datetime',
@@ -64,27 +67,22 @@ class User extends Authenticatable
 
     public function orders(): HasMany
     {
-        return $this->hasMany(Order::class, 'user_id');
+        return $this->hasMany(Order::class, 'customer_id');
     }
 
     public function serviceRequests(): HasMany
     {
-        return $this->hasMany(ServiceRequest::class, 'user_id');
-    }
-
-    public function offers(): HasMany
-    {
-        return $this->hasMany(Offer::class, 'engineer_id');
+        return $this->hasMany(ServiceRequest::class, 'customer_id');
     }
 
     public function storeRatings(): HasMany
     {
-        return $this->hasMany(StoreRating::class, 'user_id');
+        return $this->hasMany(StoreRating::class, 'customer_id');
     }
 
     public function engineerRatings(): HasMany
     {
-        return $this->hasMany(EngineerRating::class, 'user_id');
+        return $this->hasMany(EngineerRating::class, 'customer_id');
     }
 
     public function notifications(): HasMany
