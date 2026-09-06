@@ -41,8 +41,8 @@ class SpecializationsSeeder extends Seeder
                 ['name' => $specialization['name']],
                 [
                     'description' => $specialization['description'],
-                    'create_at' =>now(),
-                    'update_at' => now(),
+                    'created_at' =>now(),
+                    'updated_at' => now(),
                 ]
             );
         }
