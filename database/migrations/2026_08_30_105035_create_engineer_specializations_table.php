@@ -6,28 +6,26 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::disableForeignKeyConstraints();
-
         Schema::create('engineer_specializations', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('engineer_id');
-            $table->foreign('engineer_id')->references('id')->on('engineer_profile');
-            $table->unsignedBigInteger('specialization_id');
-            $table->foreign('specialization_id')->references('id')->on('specializations');
-            $table->unique(['engineer_id', 'specialization_id']);
-        });
 
-        Schema::enableForeignKeyConstraints();
+            $table->foreignId('engineer_id')
+                ->constrained('engineer_profile')
+                ->cascadeOnDelete();
+
+            $table->foreignId('specialization_id')
+                ->constrained('specializations')
+                ->cascadeOnDelete();
+
+            $table->unique([
+                'engineer_id',
+                'specialization_id',
+            ]);
+        });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('engineer_specializations');

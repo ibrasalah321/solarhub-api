@@ -2,42 +2,45 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::disableForeignKeyConstraints();
-
         Schema::create('engineer_ratings', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('service_request_id')->unique();
-            $table->foreign('service_request_id')->references('id')->on('service_requests');
-            $table->unsignedBigInteger('customer_id');
 
-            $table->foreign('customer_id')
-                ->references('id')->on('users');
-            $table->unsignedBigInteger('engineer_id');
+            $table->foreignId('service_request_id')
+                ->unique()
+                ->constrained('service_requests')
+                ->restrictOnDelete();
 
-            $table->foreign('engineer_id')
-                ->references('id')->on('engineer_profile');
+            $table->foreignId('customer_id')
+                ->constrained('users')
+                ->restrictOnDelete();
+
+            $table->foreignId('engineer_id')
+                ->constrained('engineer_profile')
+                ->restrictOnDelete();
+
             $table->unsignedTinyInteger('rating');
+
             $table->text('comment')->nullable();
-            $table->boolean('is_approved')->nullable()->default(true);
-            $table->timestamp('created_at')->nullable();
-            $table->timestamp('updated_at')->nullable();
+
+            $table->boolean('is_approved')->default(true);
+
+            $table->timestamps();
         });
 
-        Schema::enableForeignKeyConstraints();
+        DB::statement(
+            'ALTER TABLE engineer_ratings
+             ADD CONSTRAINT engineer_ratings_rating_check
+             CHECK (rating BETWEEN 1 AND 5)'
+        );
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('engineer_ratings');
