@@ -13,22 +13,39 @@ class StorePayout extends Model
     protected $table = 'store_payouts';
 
     protected $fillable = [
-        'order_id',
-        'store_id',
+        'order_store_id',
+        'user_wallet_id',
         'total_amount',
-        'platform_commission',
+        'commission_rate',
+        'commission_amount',
         'net_amount',
-        'transfer_status',
+        'status',
         'transfer_reference',
+        'paid_at',
     ];
 
-    public function order(): BelongsTo
+    protected function casts(): array
     {
-        return $this->belongsTo(Order::class, 'order_id');
+        return [
+            'order_store_id' => 'integer',
+            'user_wallet_id' => 'integer',
+            'total_amount' => 'decimal:2',
+            'commission_rate' => 'decimal:2',
+            'commission_amount' => 'decimal:2',
+            'net_amount' => 'decimal:2',
+            'paid_at' => 'datetime',
+            'created_at' => 'datetime',
+            'updated_at' => 'datetime',
+        ];
     }
 
-    public function store(): BelongsTo
+    public function orderStore(): BelongsTo
     {
-        return $this->belongsTo(Store::class, 'store_id');
+        return $this->belongsTo(OrderStore::class, 'order_store_id');
+    }
+
+    public function userWallet(): BelongsTo
+    {
+        return $this->belongsTo(UserWallet::class, 'user_wallet_id');
     }
 }

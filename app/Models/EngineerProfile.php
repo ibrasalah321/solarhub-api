@@ -5,7 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\EngineerCertificate;
 
 class EngineerProfile extends Model
 {
@@ -15,21 +17,21 @@ class EngineerProfile extends Model
 
     protected $fillable = [
         'user_id',
+        'license_number',
+        'years_of_experience',
         'bio',
-        'experience_years',
-        'service_area',
-        'latitude',
-        'longitude',
-        'is_available',
+        'profile_photo',
+        'approval_status',
+        'rejection_reason',
+        'approved_at',
     ];
 
     protected function casts(): array
     {
         return [
-            'experience_years' => 'integer',
-            'latitude' => 'decimal:7',
-            'longitude' => 'decimal:7',
-            'is_available' => 'boolean',
+            'user_id' => 'integer',
+            'years_of_experience' => 'integer',
+            'approved_at' => 'datetime',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
         ];
@@ -40,43 +42,33 @@ class EngineerProfile extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
-    public function specializations(): HasMany
+    public function specializations(): BelongsToMany
     {
-        return $this->hasMany(
-            EngineerSpecialization::class,
-            'engineer_id'
+        return $this->belongsToMany(
+            Specialization::class,
+            'engineer_specializations',
+            'engineer_id',
+            'specialization_id'
         );
     }
 
     public function certificates(): HasMany
     {
-        return $this->hasMany(
-            EngineerCertificate::class,
-            'engineer_id'
-        );
-    }
-
-    public function portfolioItems(): HasMany
-    {
-        return $this->hasMany(
-            PortfolioItem::class,
-            'engineer_id'
-        );
+        return $this->hasMany(EngineerCertificate::class, 'engineer_id');
     }
 
     public function offers(): HasMany
     {
-        return $this->hasMany(
-            Offer::class,
-            'engineer_id'
-        );
+        return $this->hasMany(Offer::class, 'engineer_id');
+    }
+
+    public function portfolioItems(): HasMany
+    {
+        return $this->hasMany(PortfolioItem::class, 'engineer_id');
     }
 
     public function ratings(): HasMany
     {
-        return $this->hasMany(
-            EngineerRating::class,
-            'engineer_id'
-        );
+        return $this->hasMany(EngineerRating::class, 'engineer_id');
     }
 }

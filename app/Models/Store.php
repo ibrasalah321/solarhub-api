@@ -21,12 +21,13 @@ class Store extends Model
         'tax_number',
         'bio',
         'company_logo_path',
+        'whatsapp_number',
         'approval_status',
         'rejection_reason',
         'store_type',
         'address_details',
-        'location_coordinates',
         'approved_at',
+        'location_coordinates',
     ];
 
     protected function casts(): array

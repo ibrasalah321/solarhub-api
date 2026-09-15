@@ -6,9 +6,10 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Database\Eloquent\SoftDeletes;
+
 
 class User extends Authenticatable
 {
@@ -22,10 +23,8 @@ class User extends Authenticatable
         'email',
         'phone',
         'password',
-        'user_type',
-        'address',
-        'default_coordinates',
         'status',
+        'default_coordinates',
     ];
 
     protected $hidden = [
@@ -37,7 +36,6 @@ class User extends Authenticatable
     {
         return [
             'governorate_id' => 'integer',
-            'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
@@ -70,6 +68,16 @@ class User extends Authenticatable
         return $this->hasMany(Order::class, 'customer_id');
     }
 
+    public function userWallets(): HasMany
+    {
+        return $this->hasMany(UserWallet::class, 'user_id');
+    }
+
+    public function quoteRequests(): HasMany
+    {
+        return $this->hasMany(QuoteRequest::class, 'customer_id');
+    }
+
     public function serviceRequests(): HasMany
     {
         return $this->hasMany(ServiceRequest::class, 'customer_id');
@@ -85,8 +93,8 @@ class User extends Authenticatable
         return $this->hasMany(EngineerRating::class, 'customer_id');
     }
 
-    public function notifications(): HasMany
+    public function verifiedPayments(): HasMany
     {
-        return $this->hasMany(Notification::class, 'user_id');
+        return $this->hasMany(OrderPayment::class, 'verified_by');
     }
 }
