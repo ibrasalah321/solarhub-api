@@ -21,7 +21,6 @@ class StoreProduct extends Model
         'stock_quantity',
         'min_order_qty',
         'warranty_period',
-        'is_available',
         'status',
     ];
 
@@ -34,7 +33,6 @@ class StoreProduct extends Model
             'price' => 'decimal:2',
             'stock_quantity' => 'integer',
             'min_order_qty' => 'integer',
-            'is_available' => 'boolean',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
         ];
@@ -63,5 +61,10 @@ class StoreProduct extends Model
     public function orderItems(): HasMany
     {
         return $this->hasMany(OrderItem::class, 'store_product_id');
+    }
+
+    public function quoteRequests(): HasMany
+    {
+        return $this->hasMany(QuoteRequest::class, 'store_product_id');
     }
 }

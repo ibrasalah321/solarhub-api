@@ -4,11 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Specialization extends Model
 {
     use HasFactory;
+
+    protected $table = 'specializations';
 
     protected $fillable = [
         'name',
@@ -25,11 +27,13 @@ class Specialization extends Model
         ];
     }
 
-    public function engineerSpecializations(): HasMany
+    public function engineerProfiles(): BelongsToMany
     {
-        return $this->hasMany(
-            EngineerSpecialization::class,
-            'specialization_id'
+        return $this->belongsToMany(
+            EngineerProfile::class,
+            'engineer_specializations',
+            'specialization_id',
+            'engineer_id'
         );
     }
 }

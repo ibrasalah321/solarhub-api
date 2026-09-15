@@ -10,6 +10,8 @@ class ServiceType extends Model
 {
     use HasFactory;
 
+    protected $table = 'service_types';
+
     protected $fillable = [
         'name',
         'description',
@@ -29,5 +31,10 @@ class ServiceType extends Model
     public function serviceRequests(): HasMany
     {
         return $this->hasMany(ServiceRequest::class, 'service_type_id');
+    }
+
+    public function portfolioItems(): HasMany
+    {
+        return $this->hasMany(PortfolioItem::class, 'service_type_id');
     }
 }
