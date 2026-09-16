@@ -3,38 +3,50 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreStoreRequest;
+use App\Http\Requests\UpdateStoreRequest;
+use App\Http\Resources\StoreResource;
 use App\Models\Store;
+use App\Services\StoreService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class StoreController extends Controller
 {
-    public function index(): JsonResponse
+    public function __construct(
+        protected StoreService $storeService
+    ) {}
+
+    public function index(): AnonymousResourceCollection
     {
-        return response()->json(Store::with('user')->paginate(15));
+        $stores = $this->storeService->listStores();
+        return StoreResource::collection($stores);
     }
 
     public function store(StoreStoreRequest $request): JsonResponse
     {
-        $store = Store::create($request->validated());
-        return response()->json($store, 201);
+        $store = $this->storeService->createStore($request->validated());
+        return (new StoreResource($store))
+            ->response()
+            ->setStatusCode(201);
     }
 
-    public function show($id): JsonResponse
+    public function show($id): StoreResource
     {
-        $store = Store::with(['user', 'storeProducts.masterProduct'])->findOrFail($id);
-        return response()->json($store);
+        $store = Store::with('user')->findOrFail($id);
+        return new StoreResource($store);
     }
 
-    public function update(StoreStoreRequest $request, $id): JsonResponse
+    public function update(UpdateStoreRequest $request, $id): StoreResource
     {
         $store = Store::findOrFail($id);
-        $store->update($request->validated());
-        return response()->json($store);
+        $updatedStore = $this->storeService->updateStore($store, $request->validated());
+        return new StoreResource($updatedStore);
     }
 
     public function destroy($id): JsonResponse
     {
-        Store::findOrFail($id)->delete();
+        $store = Store::findOrFail($id);
+        $this->storeService->deleteStore($store);
         return response()->json(['message' => 'Store deleted successfully']);
     }
 }
