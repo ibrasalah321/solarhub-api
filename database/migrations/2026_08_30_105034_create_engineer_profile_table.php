@@ -10,30 +10,22 @@ return new class extends Migration
     {
         Schema::create('engineer_profile', function (Blueprint $table) {
             $table->id();
-
             $table->foreignId('user_id')
                 ->unique()
                 ->constrained('users')
                 ->cascadeOnDelete();
-
             $table->string('license_number', 100)->nullable();
-
             $table->unsignedInteger('years_of_experience')->nullable();
-
             $table->text('bio')->nullable();
-
-            $table->string('profile_photo', 255)->nullable();
-
+            $table->string('cv_path', 255)->nullable();
+            $table->string('profile_photo_path', 255)->nullable();
             $table->enum('approval_status', [
                 'pending',
                 'approved',
                 'rejected',
             ])->default('pending');
-
             $table->string('rejection_reason', 255)->nullable();
-
             $table->timestamp('approved_at')->nullable();
-
             $table->timestamps();
         });
     }
