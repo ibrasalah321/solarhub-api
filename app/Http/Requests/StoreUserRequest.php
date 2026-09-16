@@ -18,6 +18,7 @@ class StoreUserRequest extends FormRequest
             'email' => 'required|email|max:150|unique:users,email,' . $userId,
             'phone' => 'required|string|max:30|unique:users,phone,' . $userId,
             'password' => $this->isMethod('post') ? 'required|string|min:6' : 'nullable|string|min:6',
+            'email_verified_at' => 'nullable|date',
             'status' => 'required|in:active,inactive,suspended',
             'default_coordinates' => 'nullable|string',
         ];

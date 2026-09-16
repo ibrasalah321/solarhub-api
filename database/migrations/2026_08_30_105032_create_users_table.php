@@ -10,30 +10,22 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-
             $table->foreignId('governorate_id')
                 ->nullable()
                 ->constrained('governorates')
                 ->nullOnDelete();
-
             $table->string('name', 150);
-
             $table->string('email', 150)->unique();
-
             $table->string('phone', 30)->unique();
-
             $table->string('password');
-
+            $table->timestamp('email_verified_at')->nullable();
             $table->enum('status', [
                 'active',
                 'inactive',
                 'suspended',
             ])->default('active');
-
             $table->string('default_coordinates')->nullable();
-
             $table->timestamps();
-
             $table->softDeletes();
         });
     }
