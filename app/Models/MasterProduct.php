@@ -19,7 +19,6 @@ class MasterProduct extends Model
         'title',
         'model_number',
         'description',
-        'main_image',
         'datasheet_file',
         'is_active',
     ];

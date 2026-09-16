@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class UserWallet extends Model
 {
@@ -18,12 +19,18 @@ class UserWallet extends Model
         'account_number',
         'account_name',
         'is_default',
+        'is_active',
     ];
 
     protected function casts(): array
     {
         return [
+            'user_id' => 'integer',
+            'wallet_provider_id' => 'integer',
             'is_default' => 'boolean',
+            'is_active' => 'boolean',
+            'created_at' => 'datetime',
+            'updated_at' => 'datetime',
         ];
     }
 
@@ -35,5 +42,10 @@ class UserWallet extends Model
     public function walletProvider(): BelongsTo
     {
         return $this->belongsTo(WalletProvider::class, 'wallet_provider_id');
+    }
+
+    public function payouts(): HasMany
+    {
+        return $this->hasMany(StorePayout::class, 'user_wallet_id');
     }
 }

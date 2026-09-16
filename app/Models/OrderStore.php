@@ -20,6 +20,8 @@ class OrderStore extends Model
         'subtotal',
         'status',
         'notes',
+        'delivered_at',
+        'customer_confirmed_at',
     ];
 
     protected function casts(): array
@@ -28,6 +30,8 @@ class OrderStore extends Model
             'order_id' => 'integer',
             'store_id' => 'integer',
             'subtotal' => 'decimal:2',
+            'delivered_at' => 'datetime',
+            'customer_confirmed_at' => 'datetime',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
         ];
@@ -46,6 +50,11 @@ class OrderStore extends Model
     public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class, 'order_store_id');
+    }
+
+    public function payout(): HasOne
+    {
+        return $this->hasOne(StorePayout::class, 'order_store_id');
     }
 
     public function rating(): HasOne

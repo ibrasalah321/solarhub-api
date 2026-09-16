@@ -19,9 +19,8 @@ class Order extends Model
         'delivery_governorate_id',
         'total_amount',
         'delivery_address',
-        'delivery_coordinates',
-        'payment_method',
         'status',
+        'delivery_coordinates',
     ];
 
     protected function casts(): array
@@ -48,5 +47,10 @@ class Order extends Model
     public function orderStores(): HasMany
     {
         return $this->hasMany(OrderStore::class, 'order_id');
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(OrderPayment::class, 'order_id');
     }
 }

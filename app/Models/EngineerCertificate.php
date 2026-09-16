@@ -14,19 +14,13 @@ class EngineerCertificate extends Model
 
     protected $fillable = [
         'engineer_id',
-        'certificate_name',
-        'issuing_organization',
-        'certificate_number',
-        'issue_date',
-        'expiry_date',
-        'certificate_file',
+        'file_path',
     ];
 
     protected function casts(): array
     {
         return [
-            'issue_date' => 'date',
-            'expiry_date' => 'date',
+            'engineer_id' => 'integer',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
         ];
@@ -34,9 +28,6 @@ class EngineerCertificate extends Model
 
     public function engineer(): BelongsTo
     {
-        return $this->belongsTo(
-            EngineerProfile::class,
-            'engineer_id'
-        );
+        return $this->belongsTo(EngineerProfile::class, 'engineer_id');
     }
 }
