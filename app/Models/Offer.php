@@ -13,35 +13,34 @@ class Offer extends Model
     protected $table = 'offers';
 
     protected $fillable = [
+        'service_request_id',
         'engineer_id',
-        'request_id',
-        'price',
-        'message',
+        'proposed_cost',
+        'execution_time_days',
+        'technical_proposal',
+        'proposal_file',
         'status',
     ];
 
     protected function casts(): array
     {
         return [
-            'price' => 'decimal:2',
+            'service_request_id' => 'integer',
+            'engineer_id' => 'integer',
+            'proposed_cost' => 'decimal:2',
+            'execution_time_days' => 'integer',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
         ];
     }
 
-    public function engineer(): BelongsTo
+    public function serviceRequest(): BelongsTo
     {
-        return $this->belongsTo(
-            EngineerProfile::class,
-            'engineer_id'
-        );
+        return $this->belongsTo(ServiceRequest::class, 'service_request_id');
     }
 
-    public function request(): BelongsTo
+    public function engineer(): BelongsTo
     {
-        return $this->belongsTo(
-            ServiceRequest::class,
-            'request_id'
-        );
+        return $this->belongsTo(EngineerProfile::class, 'engineer_id');
     }
 }

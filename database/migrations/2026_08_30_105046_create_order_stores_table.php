@@ -6,32 +6,46 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::disableForeignKeyConstraints();
-
         Schema::create('order_stores', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('order_id');
-            $table->foreign('order_id')->references('id')->on('orders');
-            $table->unsignedBigInteger('store_id');
-            $table->foreign('store_id')->references('id')->on('stores');
-            $table->decimal('subtotal', 10, 2);
-            $table->enum('status', ["pending","accepted","shipped","delivered","rejected"])->nullable();
-            $table->text('notes')->nullable();
-            $table->timestamp('created_at')->nullable();
-            $table->timestamp('updated_at')->nullable();
-        });
 
-        Schema::enableForeignKeyConstraints();
+            $table->foreignId('order_id')
+                ->constrained('orders')
+                ->cascadeOnDelete();
+
+            $table->foreignId('store_id')
+                ->constrained('stores')
+                ->restrictOnDelete();
+
+            $table->decimal('subtotal', 12, 2);
+
+            $table->enum('status', [
+                'pending',
+                'accepted',
+                'shipped',
+                'delivered',
+                'completed',
+                'rejected',
+                'cancelled',
+            ])->default('pending');
+
+            $table->text('notes')->nullable();
+
+            $table->timestamp('delivered_at')->nullable();
+
+            $table->timestamp('customer_confirmed_at')->nullable();
+
+            $table->timestamps();
+
+            $table->unique([
+                'order_id',
+                'store_id',
+            ]);
+        });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('order_stores');

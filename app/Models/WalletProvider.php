@@ -13,9 +13,10 @@ class WalletProvider extends Model
     protected $table = 'wallet_providers';
 
     protected $fillable = [
+        'code',
         'name_ar',
         'name_en',
-        'logo',
+        'logo_path',
         'is_active',
     ];
 
@@ -23,11 +24,18 @@ class WalletProvider extends Model
     {
         return [
             'is_active' => 'boolean',
+            'created_at' => 'datetime',
+            'updated_at' => 'datetime',
         ];
     }
 
     public function userWallets(): HasMany
     {
         return $this->hasMany(UserWallet::class, 'wallet_provider_id');
+    }
+
+    public function orderPayments(): HasMany
+    {
+        return $this->hasMany(OrderPayment::class, 'wallet_provider_id');
     }
 }

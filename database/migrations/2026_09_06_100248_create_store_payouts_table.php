@@ -10,13 +10,35 @@ return new class extends Migration
     {
         Schema::create('store_payouts', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('order_id')->constrained('orders')->onDelete('cascade');
-            $table->foreignId('store_id')->constrained('stores')->onDelete('cascade');
-            $table->decimal('total_amount', 10, 2);
-            $table->decimal('platform_commission', 10, 2);
-            $table->decimal('net_amount', 10, 2);
-            $table->string('transfer_status')->default('pending'); // pending, completed, failed
-            $table->string('transfer_reference')->nullable();
+
+            $table->foreignId('order_store_id')
+                ->unique()
+                ->constrained('order_stores')
+                ->restrictOnDelete();
+
+            $table->foreignId('user_wallet_id')
+                ->nullable()
+                ->constrained('user_wallets')
+                ->nullOnDelete();
+
+            $table->decimal('total_amount', 12, 2);
+
+            $table->decimal('commission_rate', 5, 2);
+
+            $table->decimal('commission_amount', 12, 2);
+
+            $table->decimal('net_amount', 12, 2);
+
+            $table->enum('status', [
+                'pending',
+                'completed',
+                'failed',
+            ])->default('pending');
+
+            $table->string('transfer_reference', 150)->nullable();
+
+            $table->timestamp('paid_at')->nullable();
+
             $table->timestamps();
         });
     }

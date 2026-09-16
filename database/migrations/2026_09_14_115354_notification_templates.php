@@ -6,27 +6,24 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+
     public function up(): void
     {
-        Schema::create('wallet_providers', function (Blueprint $table) {
+        Schema::create('notification_templates', function (Blueprint $table) {
             $table->id();
-
-            $table->string('code', 50)->unique();
-
-            $table->string('name_ar', 100);
-
-            $table->string('name_en', 100)->nullable();
-
-            $table->string('logo_path', 255)->nullable();
-
+            $table->string('code')->unique();
+            $table->string('title');
+            $table->text('body');
+            $table->string('type');
+            $table->json('variables')->nullable();
             $table->boolean('is_active')->default(true);
-
             $table->timestamps();
         });
     }
 
+
     public function down(): void
     {
-        Schema::dropIfExists('wallet_providers');
+        Schema::dropIfExists('notification_templates');
     }
 };

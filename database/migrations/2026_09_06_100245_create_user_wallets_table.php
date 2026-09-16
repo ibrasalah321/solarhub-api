@@ -15,7 +15,15 @@ return new class extends Migration
             $table->string('account_number');
             $table->string('account_name')->nullable();
             $table->boolean('is_default')->default(false);
+            $table->boolean('is_active')->default(true);
+
             $table->timestamps();
+
+            $table->unique([
+                'user_id',
+                'wallet_provider_id',
+                'account_number',
+            ]);
         });
     }
 

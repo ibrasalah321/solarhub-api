@@ -10,6 +10,8 @@ class Governorate extends Model
 {
     use HasFactory;
 
+    protected $table = 'governorates';
+
     protected $fillable = [
         'name_ar',
         'name_en',
@@ -30,9 +32,14 @@ class Governorate extends Model
         return $this->hasMany(User::class, 'governorate_id');
     }
 
-    public function portfolioItems(): HasMany
+    public function storeProducts(): HasMany
     {
-        return $this->hasMany(PortfolioItem::class, 'governorate_id');
+        return $this->hasMany(StoreProduct::class, 'governorate_id');
+    }
+
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class, 'delivery_governorate_id');
     }
 
     public function serviceRequests(): HasMany
@@ -40,13 +47,8 @@ class Governorate extends Model
         return $this->hasMany(ServiceRequest::class, 'governorate_id');
     }
 
-    public function storeProducts(): HasMany
+    public function portfolioItems(): HasMany
     {
-        return $this->hasMany(StoreProduct::class, 'governorate_id');
-    }
-
-    public function deliveryOrders(): HasMany
-    {
-        return $this->hasMany(Order::class, 'delivery_governorate_id');
+        return $this->hasMany(PortfolioItem::class, 'governorate_id');
     }
 }

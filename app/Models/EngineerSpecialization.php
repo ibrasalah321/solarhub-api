@@ -2,34 +2,23 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\Pivot;
 
-class EngineerSpecialization extends Model
+class EngineerSpecialization extends Pivot
 {
-    use HasFactory;
-
     protected $table = 'engineer_specializations';
+    public $timestamps = false;
 
     protected $fillable = [
         'engineer_id',
         'specialization_id',
     ];
 
-    public function engineer(): BelongsTo
+    protected function casts(): array
     {
-        return $this->belongsTo(
-            EngineerProfile::class,
-            'engineer_id'
-        );
-    }
-
-    public function specialization(): BelongsTo
-    {
-        return $this->belongsTo(
-            Specialization::class,
-            'specialization_id'
-        );
+        return [
+            'engineer_id' => 'integer',
+            'specialization_id' => 'integer',
+        ];
     }
 }

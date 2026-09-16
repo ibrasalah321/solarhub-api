@@ -10,12 +10,37 @@ return new class extends Migration
     {
         Schema::create('order_payments', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('order_id')->constrained('orders')->onDelete('cascade');
-            $table->string('payment_method');
-            $table->decimal('amount', 10, 2);
-            $table->string('receipt_image')->nullable();
-            $table->string('status')->default('pending'); // pending, verified, rejected
-            $table->foreignId('verified_by')->nullable()->constrained('users')->nullOnDelete();
+
+            $table->foreignId('order_id')
+                ->constrained('orders')
+                ->restrictOnDelete();
+
+            $table->foreignId('wallet_provider_id')
+                ->nullable()
+                ->constrained('wallet_providers')
+                ->restrictOnDelete();
+
+            $table->decimal('amount', 12, 2);
+
+            $table->string('transaction_reference', 150)->nullable();
+
+            $table->string('receipt_image', 255)->nullable();
+
+            $table->enum('status', [
+                'pending',
+                'verified',
+                'rejected',
+            ])->default('pending');
+
+            $table->foreignId('verified_by')
+                ->nullable()
+                ->constrained('users')
+                ->nullOnDelete();
+
+            $table->timestamp('paid_at')->nullable();
+
+            $table->timestamp('verified_at')->nullable();
+
             $table->timestamps();
         });
     }
