@@ -22,7 +22,7 @@ class User extends Authenticatable
         'email',
         'phone',
         'password',
-        'email_verified_at',
+
         'status',
         'default_coordinates',
     ];
@@ -44,7 +44,7 @@ class User extends Authenticatable
         ];
     }
 
-    public function otps(): HasMany
+    public function emailOtps(): HasMany
     {
         return $this->hasMany(EmailOtp::class, 'user_id');
     }
