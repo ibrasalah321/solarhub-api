@@ -14,7 +14,7 @@ use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
 
 class OtpService
 {
-    public function generate(User $user): EmailOtp
+    public function generate(User $user): array
     {
         $this->invalidate($user);
 
@@ -36,21 +36,21 @@ class OtpService
         $otp = $user->emailOtps()->create([
             'code' => Hash::make($plainCode),
             'attempts' => 0,
-            'expires_at' => now()->addMinutes(
-                $expiresInMinutes
-            ),
+            'expires_at' => now()->addMinutes($expiresInMinutes),
             'invalidated_at' => null,
         ]);
 
-        Mail::to($user->email)->send(
-            new VerificationOtpMail(
-                code: $plainCode,
-                expiresInMinutes: $expiresInMinutes
-            )
-        );
-
-        return $otp;
+        return [
+            'otp' => $otp,
+            'plain_code' => $plainCode,
+        ];
     }
+    public function sendOtpEmail(User $user , string $plainCode): void
+    {
+        Mail::to($user->email)
+            ->send(new VerificationOtpMail($plainCode));
+    }
+
 
     public function verify(
         string $email,
@@ -200,7 +200,14 @@ class OtpService
             return null;
         }
 
-        return $this->generate($user);
+        $otpData = $this->generate($user);
+
+        $this->sendOtpEmail(
+            $user,
+            $otpData['plain_code']
+        );
+
+        return $otpData['otp'];
     }
 
     public function invalidate(User $user): void
