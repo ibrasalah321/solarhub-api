@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,35 +11,46 @@ class EmailOtp extends Model
 {
     use HasFactory;
 
-    protected $table = 'email_otps';
-
     protected $fillable = [
         'user_id',
-        'email',
-        'otp',
+        'code',
         'attempts',
         'expires_at',
-        'verified_at',
+        'invalidated_at',
     ];
 
     protected $hidden = [
-        'otp',
+        'code',
     ];
 
     protected function casts(): array
     {
         return [
-            'user_id' => 'integer',
             'attempts' => 'integer',
             'expires_at' => 'datetime',
-            'verified_at' => 'datetime',
-            'created_at' => 'datetime',
-            'updated_at' => 'datetime',
+            'invalidated_at' => 'datetime',
         ];
     }
 
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(User::class);
+    }
+
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query
+            ->whereNull('invalidated_at')
+            ->where('expires_at', '>', now());
+    }
+
+    public function isExpired(): bool
+    {
+        return $this->expires_at->isPast();
+    }
+
+    public function isInvalidated(): bool
+    {
+        return $this->invalidated_at !== null;
     }
 }
