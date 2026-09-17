@@ -1,0 +1,106 @@
+name: Telegram GitHub Notifications
+
+on:
+  push:
+  pull_request:
+    types: [opened, closed, reopened]
+  issues:
+    types: [opened, closed, reopened]
+  issue_comment:
+    types: [created]
+  create:
+  delete:
+
+jobs:
+  telegram:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Send Telegram notification
+        env:
+          BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          EVENT_NAME: ${{ github.event_name }}
+          REPOSITORY: ${{ github.repository }}
+          ACTOR: ${{ github.actor }}
+          BRANCH: ${{ github.ref_name }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          COMMIT_URL: ${{ github.event.head_commit.url }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_ACTION: ${{ github.event.action }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_URL: ${{ github.event.issue.html_url }}
+          COMMENT: ${{ github.event.comment.body }}
+
+        run: |
+          if [ "$EVENT_NAME" = "push" ]; then
+            MESSAGE="📤 <b>GitHub Push</b>
+
+          📦 Repository: $REPOSITORY
+          👤 Developer: $ACTOR
+          🌿 Branch: $BRANCH
+
+          📝 Commit:
+          $COMMIT_MESSAGE
+
+          🔗 $COMMIT_URL"
+
+          elif [ "$EVENT_NAME" = "pull_request" ]; then
+            MESSAGE="🔀 <b>Pull Request</b>
+
+          📦 Repository: $REPOSITORY
+          👤 Developer: $ACTOR
+          ⚡ Action: $PR_ACTION
+
+          📝 $PR_TITLE
+
+          🔗 $PR_URL"
+
+          elif [ "$EVENT_NAME" = "issues" ]; then
+            MESSAGE="🐛 <b>Issue</b>
+
+          📦 Repository: $REPOSITORY
+          👤 User: $ACTOR
+          ⚡ Action: $PR_ACTION
+
+          📝 $ISSUE_TITLE
+
+          🔗 $ISSUE_URL"
+
+          elif [ "$EVENT_NAME" = "issue_comment" ]; then
+            MESSAGE="💬 <b>GitHub Comment</b>
+
+          📦 Repository: $REPOSITORY
+          👤 User: $ACTOR
+
+          💭 $COMMENT"
+
+          elif [ "$EVENT_NAME" = "create" ]; then
+            MESSAGE="🌿 <b>GitHub Created</b>
+
+          📦 Repository: $REPOSITORY
+          👤 User: $ACTOR
+          🌿 Ref: $BRANCH"
+
+          elif [ "$EVENT_NAME" = "delete" ]; then
+            MESSAGE="🗑️ <b>GitHub Deleted</b>
+
+          📦 Repository: $REPOSITORY
+          👤 User: $ACTOR
+          🌿 Ref: $BRANCH"
+
+          else
+            MESSAGE="🤖 GitHub Event
+
+          📦 $REPOSITORY
+          👤 $ACTOR
+          ⚡ $EVENT_NAME"
+
+          fi
+
+          curl -s -X POST \
+            "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
+            -d "chat_id=${CHAT_ID}" \
+            -d "parse_mode=HTML" \
+            --data-urlencode "text=${MESSAGE}"
