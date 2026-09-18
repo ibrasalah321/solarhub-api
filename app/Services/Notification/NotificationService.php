@@ -55,23 +55,24 @@ class NotificationService
      *
      * @param  array<string, string>  $placeholders  e.g. ['order_number' => 'SH-000123']
      */
-    public function sendToUser(
-        User $user,
-        string $templateCode,
-        array $placeholders = [],
-        ?string $actionUrl = null
-    ): Notification {
-        $template = NotificationTemplate::query()
-            ->where('code', $templateCode)
-            ->where('is_active', true)
-            ->firstOrFail();
+            public function sendToUser(
+            User $user,
+            string $templateCode,
+            array $placeholders = [],
+            ?string $actionUrl = null
+        ): Notification {
+            $template = NotificationTemplate::query()
+                ->where('code', $templateCode)
+                ->where('is_active', true)
+                ->firstOrFail();
 
-        return $user->notifications()->create([
-            'title' => $this->render($template->title, $placeholders),
-            'body' => $this->render($template->body, $placeholders),
-            'action_url' => $actionUrl,
-        ]);
-    }
+            return Notification::create([
+                'user_id'    => $user->id,
+                'title'      => $this->render($template->title, $placeholders),
+                'body'       => $this->render($template->body, $placeholders),
+                'action_url' => $actionUrl,
+            ]);
+        }
 
     /**
      * Replace {{placeholder}} tokens in a template string.
