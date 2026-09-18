@@ -11,7 +11,7 @@ class UserController extends Controller
 {
     public function index(): JsonResponse
     {
-        return response()->json(User::with(['governorate', 'store'])->paginate(20));
+        return response()->json(User::with(['governorate', 'store', 'engineerProfile'])->paginate(20));
     }
 
     public function store(StoreUserRequest $request): JsonResponse
@@ -25,7 +25,7 @@ class UserController extends Controller
 
     public function show($id): JsonResponse
     {
-        $user = User::with(['governorate', 'store', 'userWallets'])->findOrFail($id);
+        $user = User::with(['governorate', 'store', 'engineerProfile', 'userWallets'])->findOrFail($id);
         return response()->json($user);
     }
 

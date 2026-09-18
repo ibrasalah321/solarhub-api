@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use App\Models\EngineerCertificate;
 
 class EngineerProfile extends Model
 {
@@ -20,7 +19,8 @@ class EngineerProfile extends Model
         'license_number',
         'years_of_experience',
         'bio',
-        'profile_photo',
+        'cv_path',
+        'profile_photo_path',
         'approval_status',
         'rejection_reason',
         'approved_at',
@@ -54,21 +54,33 @@ class EngineerProfile extends Model
 
     public function certificates(): HasMany
     {
-        return $this->hasMany(EngineerCertificate::class, 'engineer_id');
+        return $this->hasMany(
+            EngineerCertificate::class,
+            'engineer_id'
+        );
     }
 
     public function offers(): HasMany
     {
-        return $this->hasMany(Offer::class, 'engineer_id');
+        return $this->hasMany(
+            Offer::class,
+            'engineer_id'
+        );
     }
 
     public function portfolioItems(): HasMany
     {
-        return $this->hasMany(PortfolioItem::class, 'engineer_id');
+        return $this->hasMany(
+            PortfolioItem::class,
+            'engineer_id'
+        );
     }
 
     public function ratings(): HasMany
     {
-        return $this->hasMany(EngineerRating::class, 'engineer_id');
+        return $this->hasMany(
+            EngineerRating::class,
+            'engineer_id'
+        );
     }
 }

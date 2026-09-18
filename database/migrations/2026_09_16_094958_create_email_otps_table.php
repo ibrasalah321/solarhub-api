@@ -1,0 +1,44 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('email_otps', function (Blueprint $table) {
+            $table->id();
+
+            $table->foreignId('user_id')
+                ->constrained('users')
+                ->cascadeOnDelete();
+
+            // سيتم تخزين الكود مشفرًا، وليس كرقم واضح.
+            $table->string('code');
+
+            // عدد المحاولات الخاطئة.
+            $table->unsignedTinyInteger('attempts')->default(0);
+
+            // وقت انتهاء صلاحية الكود.
+            $table->timestamp('expires_at');
+
+            // يستخدم لمعرفة أن الكود أصبح غير صالح.
+            $table->timestamp('invalidated_at')->nullable();
+
+            $table->timestamps();
+
+            $table->index([
+                'user_id',
+                'expires_at',
+                'invalidated_at',
+            ]);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('email_otps');
+    }
+};

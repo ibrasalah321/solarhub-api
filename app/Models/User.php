@@ -10,7 +10,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-
 class User extends Authenticatable
 {
     use HasFactory, Notifiable, SoftDeletes;
@@ -23,6 +22,7 @@ class User extends Authenticatable
         'email',
         'phone',
         'password',
+
         'status',
         'default_coordinates',
     ];
@@ -37,10 +37,16 @@ class User extends Authenticatable
         return [
             'governorate_id' => 'integer',
             'password' => 'hashed',
+            'email_verified_at' => 'datetime',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
             'deleted_at' => 'datetime',
         ];
+    }
+
+    public function emailOtps(): HasMany
+    {
+        return $this->hasMany(EmailOtp::class, 'user_id');
     }
 
     public function governorate(): BelongsTo
