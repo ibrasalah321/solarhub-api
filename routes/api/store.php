@@ -1,8 +1,8 @@
 <?php
 
-use App\Http\Controllers\Api\Store\StoreController;
-use App\Http\Controllers\Api\Store\StoreProductController;
-use App\Http\Controllers\Api\Store\StoreRatingController;
+use App\Http\Controllers\Api\StoreController;
+use App\Http\Controllers\Api\StoreProductController;
+use App\Http\Controllers\Api\StoreRatingController;
 use Illuminate\Support\Facades\Route;
 
 // Public storefront browsing.
