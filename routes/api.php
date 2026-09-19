@@ -1,6 +1,8 @@
 <?php
 
 use Illuminate\Http\Request;
+use App\Http\Controllers\Auth\OtpController;
+use App\Http\Controllers\Auth\RegistrationController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\SpecializationController;
 use App\Http\Controllers\Api\ServiceTypeController;
@@ -23,6 +25,30 @@ Route::get('/engineers/{engineer}', [EngineerProfileController::class,'show',]);
 
 Route::get('/engineers/{engineer}/ratings',[EngineerRatingController::class, 'engineerRatings']);
 
+/*
+|--------------------------------------------------------------------------
+| Public Authentication Routes
+|--------------------------------------------------------------------------
+*/
+
+Route::prefix('auth')
+    ->name('auth.')
+    ->group(function (): void {
+        Route::post(
+            '/register',
+            [RegistrationController::class, 'register']
+        )->name('register');
+
+        Route::post(
+            '/verify-otp',
+            [OtpController::class, 'verify']
+        )->name('verify-otp');
+
+        Route::post(
+            '/resend-otp',
+            [OtpController::class, 'resend']
+        )->name('resend-otp');
+    });
 
 // ------------------AUTH ROUTES ----------------
 

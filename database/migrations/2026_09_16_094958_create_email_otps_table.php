@@ -10,15 +10,30 @@ return new class extends Migration
     {
         Schema::create('email_otps', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
-            $table->string('email');
-            $table->string('otp'); // مخزن كـ Hash
+
+            $table->foreignId('user_id')
+                ->constrained('users')
+                ->cascadeOnDelete();
+
+            // سيتم تخزين الكود مشفرًا، وليس كرقم واضح.
+            $table->string('code');
+
+            // عدد المحاولات الخاطئة.
             $table->unsignedTinyInteger('attempts')->default(0);
+
+            // وقت انتهاء صلاحية الكود.
             $table->timestamp('expires_at');
-            $table->timestamp('verified_at')->nullable();
+
+            // يستخدم لمعرفة أن الكود أصبح غير صالح.
+            $table->timestamp('invalidated_at')->nullable();
+
             $table->timestamps();
-            
-            $table->index(['user_id', 'expires_at']);
+
+            $table->index([
+                'user_id',
+                'expires_at',
+                'invalidated_at',
+            ]);
         });
     }
 
