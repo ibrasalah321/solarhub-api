@@ -2,9 +2,10 @@
 
 namespace App\Http\Resources\Payment;
 
+use App\Http\Resources\Wallet\WalletProviderResource;
+use App\Services\SupabaseStorageService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Illuminate\Support\Facades\Storage;
 
 class OrderPaymentResource extends JsonResource
 {
@@ -13,19 +14,28 @@ class OrderPaymentResource extends JsonResource
         return [
             'id' => $this->id,
             'order_id' => $this->order_id,
-            'amount' => (float) $this->amount,
+
+            'wallet_provider' => new WalletProviderResource(
+                $this->whenLoaded('walletProvider')
+            ),
+
+            'amount' => $this->amount,
             'transaction_reference' => $this->transaction_reference,
+
+            // Receipt images live on the private disk; a short-lived signed URL is generated on demand.
+            'receipt_url' => app(SupabaseStorageService::class)
+                ->temporaryPrivateUrl($this->receipt_image, 15),
+
             'status' => $this->status,
-            'receipt_url' => $this->receipt_image 
-                ? Storage::disk('supabase_private')->temporaryUrl($this->receipt_image, now()->addMinutes(20))
-                : null,
-            'paid_at' => $this->paid_at?->toIso8601String(),
-            'verified_at' => $this->verified_at?->toIso8601String(),
-            'notes' => $this->notes,
-            'provider' => $this->whenLoaded('walletProvider', fn() => [
-                'id' => $this->walletProvider->id,
-                'name' => $this->walletProvider->name,
+
+            'verified_by' => $this->whenLoaded('verifiedBy', fn () => [
+                'id' => $this->verifiedBy?->id,
+                'name' => $this->verifiedBy?->name,
             ]),
+
+            'paid_at' => $this->paid_at,
+            'verified_at' => $this->verified_at,
+            'created_at' => $this->created_at,
         ];
     }
 }

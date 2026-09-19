@@ -3,20 +3,54 @@
 namespace App\Http\Requests\Wallet;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateWalletProviderRequest extends FormRequest
 {
-    public function authorize(): bool { return true; }
+    public function authorize(): bool
+    {
+        return true;
+    }
 
     public function rules(): array
     {
-        $providerId = $this->route('wallet_provider') ?? $this->route('id');
+        $walletProvider = $this->route('wallet_provider');
 
         return [
-            'name' => 'sometimes|required|string|max:100|unique:wallet_providers,name,' . $providerId,
-            'logo' => 'nullable|image|max:2048',
-            'instructions' => 'nullable|string',
-            'status' => 'sometimes|required|in:active,inactive',
+            'code' => [
+                'sometimes',
+                'required',
+                'string',
+                'max:50',
+                Rule::unique('wallet_providers', 'code')->ignore($walletProvider),
+            ],
+
+            'name_ar' => [
+                'sometimes',
+                'required',
+                'string',
+                'max:100',
+            ],
+
+            'name_en' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:100',
+            ],
+
+            'logo' => [
+                'sometimes',
+                'nullable',
+                'file',
+                'image',
+                'max:2048',
+            ],
+
+            'is_active' => [
+                'sometimes',
+                'boolean',
+            ],
         ];
     }
 }

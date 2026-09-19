@@ -1,58 +1,120 @@
 <?php
 
-namespace App\Http\Controllers\Api\Wallet;
+namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Wallet\StoreWalletProviderRequest;
 use App\Http\Requests\Wallet\UpdateWalletProviderRequest;
 use App\Http\Resources\Wallet\WalletProviderResource;
 use App\Models\WalletProvider;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use App\Services\SupabaseStorageService;
+use App\Traits\ApiResponseTrait;
 
 class WalletProviderController extends Controller
 {
-    public function index(): AnonymousResourceCollection
+    use ApiResponseTrait;
+
+    public function __construct(
+        private readonly SupabaseStorageService $storageService
+    ) {
+    }
+
+    /**
+     * Display all active wallet providers.
+     */
+    public function index()
     {
-        return WalletProviderResource::collection(
-            WalletProvider::where('status', 'active')->get()
+        $walletProviders = WalletProvider::query()
+            ->where('is_active', true)
+            ->latest()
+            ->get();
+
+        return $this->successResponse(
+            WalletProviderResource::collection($walletProviders),
+            'Wallet providers retrieved successfully.'
         );
     }
 
-    public function store(StoreWalletProviderRequest $request): JsonResponse
+    /**
+     * Display a single wallet provider.
+     */
+    public function show(WalletProvider $walletProvider)
     {
-        $data = $request->validated();
-        if ($request->hasFile('logo')) {
-            $data['logo'] = $request->file('logo')->store('wallet_providers', 'supabase_public');
-        }
-
-        $provider = WalletProvider::create($data);
-        return (new WalletProviderResource($provider))
-            ->response()
-            ->setStatusCode(201);
+        return $this->successResponse(
+            new WalletProviderResource($walletProvider),
+            'Wallet provider retrieved successfully.'
+        );
     }
 
-    public function show(int $id): WalletProviderResource
+    /**
+     * Store a new wallet provider.
+     */
+    public function store(StoreWalletProviderRequest $request)
     {
-        return new WalletProviderResource(WalletProvider::findOrFail($id));
-    }
-
-    public function update(UpdateWalletProviderRequest $request, int $id): WalletProviderResource
-    {
-        $provider = WalletProvider::findOrFail($id);
         $data = $request->validated();
 
         if ($request->hasFile('logo')) {
-            $data['logo'] = $request->file('logo')->store('wallet_providers', 'supabase_public');
+            $data['logo_path'] = $this->storageService->uploadPublic(
+                $request->file('logo'),
+                'wallet-providers'
+            );
         }
 
-        $provider->update($data);
-        return new WalletProviderResource($provider);
+        unset($data['logo']);
+
+        $walletProvider = WalletProvider::create($data);
+
+        return $this->successResponse(
+            new WalletProviderResource($walletProvider),
+            'Wallet provider created successfully.',
+            201
+        );
     }
 
-    public function destroy(int $id): JsonResponse
+    /**
+     * Update an existing wallet provider.
+     */
+    public function update(UpdateWalletProviderRequest $request, WalletProvider $walletProvider)
     {
-        WalletProvider::findOrFail($id)->delete();
-        return response()->json(['message' => 'Wallet provider deactivated successfully']);
+        $data = $request->validated();
+
+        if ($request->hasFile('logo')) {
+            $this->storageService->deletePublic($walletProvider->logo_path);
+
+            $data['logo_path'] = $this->storageService->uploadPublic(
+                $request->file('logo'),
+                'wallet-providers'
+            );
+        }
+
+        unset($data['logo']);
+
+        $walletProvider->update($data);
+
+        return $this->successResponse(
+            new WalletProviderResource($walletProvider),
+            'Wallet provider updated successfully.'
+        );
+    }
+
+    /**
+     * Delete a wallet provider.
+     */
+    public function destroy(WalletProvider $walletProvider)
+    {
+        abort_if(
+            $walletProvider->userWallets()->exists() || $walletProvider->orderPayments()->exists(),
+            409,
+            'This wallet provider is already in use and cannot be deleted.'
+        );
+
+        $this->storageService->deletePublic($walletProvider->logo_path);
+
+        $walletProvider->delete();
+
+        return $this->successResponse(
+            null,
+            'Wallet provider deleted successfully.'
+        );
     }
 }

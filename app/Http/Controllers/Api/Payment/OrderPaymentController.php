@@ -1,56 +1,84 @@
 <?php
 
-namespace App\Http\Controllers\Api\Payment;
+namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Payment\StoreOrderPaymentRequest;
-use App\Http\Requests\Payment\UpdateOrderPaymentRequest;
+use App\Http\Requests\Payment\UpdateOrderPaymentStatusRequest;
 use App\Http\Resources\Payment\OrderPaymentResource;
+use App\Models\Order;
 use App\Models\OrderPayment;
 use App\Services\Payment\OrderPaymentService;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use App\Traits\ApiResponseTrait;
+use Illuminate\Http\Request;
 
 class OrderPaymentController extends Controller
 {
+    use ApiResponseTrait;
+
     public function __construct(
-        protected OrderPaymentService $paymentService
-    ) {}
-
-    public function index(): AnonymousResourceCollection
-    {
-        $payments = OrderPayment::with('walletProvider')->latest()->paginate(20);
-        return OrderPaymentResource::collection($payments);
+        private readonly OrderPaymentService $orderPaymentService
+    ) {
     }
 
-    public function store(StoreOrderPaymentRequest $request): JsonResponse
+    /**
+     * Display all payments for a given order.
+     */
+    public function index(Order $order)
     {
-        $payment = $this->paymentService->submitPayment(
+        $payments = $this->orderPaymentService->getForOrder($order);
+
+        return $this->successResponse(
+            OrderPaymentResource::collection($payments),
+            'Payments retrieved successfully.'
+        );
+    }
+
+    /**
+     * Display a single payment.
+     */
+    public function show(OrderPayment $orderPayment)
+    {
+        return $this->successResponse(
+            new OrderPaymentResource($orderPayment->load(['walletProvider', 'verifiedBy'])),
+            'Payment retrieved successfully.'
+        );
+    }
+
+    /**
+     * Submit a new payment proof for an order.
+     */
+    public function store(StoreOrderPaymentRequest $request)
+    {
+        $payment = $this->orderPaymentService->submitPayment(
+            $request->user(),
             $request->validated(),
-            $request->file('receipt_image')
+            $request->file('receipt')
         );
 
-        return (new OrderPaymentResource($payment->load('walletProvider')))
-            ->response()
-            ->setStatusCode(201);
-    }
-
-    public function show(int $id): OrderPaymentResource
-    {
-        $payment = OrderPayment::with(['walletProvider', 'order'])->findOrFail($id);
-        return new OrderPaymentResource($payment);
-    }
-
-    public function update(UpdateOrderPaymentRequest $request, int $id): OrderPaymentResource
-    {
-        $payment = OrderPayment::findOrFail($id);
-        $updated = $this->paymentService->verifyPayment(
-            $payment,
-            $request->user()->id,
-            $request->validated('status'),
-            $request->validated('notes')
+        return $this->successResponse(
+            new OrderPaymentResource($payment),
+            'Payment submitted successfully and is pending verification.',
+            201
         );
+    }
 
-        return new OrderPaymentResource($updated);
+    /**
+     * Verify or reject a pending payment.
+     *
+     * NOTE: this endpoint is intended for platform administrators.
+     * The current schema has no role/permission system yet, so authorization
+     * here is limited to `auth:sanctum`. Add a policy/role gate before going to production.
+     */
+    public function updateStatus(UpdateOrderPaymentStatusRequest $request, OrderPayment $orderPayment)
+    {
+        $payment = $request->validated('status') === 'verified'
+            ? $this->orderPaymentService->verify($request->user(), $orderPayment)
+            : $this->orderPaymentService->reject($request->user(), $orderPayment);
+
+        return $this->successResponse(
+            new OrderPaymentResource($payment),
+            'Payment status updated successfully.'
+        );
     }
 }

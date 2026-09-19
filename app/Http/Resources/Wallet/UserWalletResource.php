@@ -11,13 +11,16 @@ class UserWalletResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'account_name' => $this->account_name,
+
+            'wallet_provider' => new WalletProviderResource(
+                $this->whenLoaded('walletProvider')
+            ),
+
             'account_number' => $this->account_number,
-            'is_default' => (bool) $this->is_default,
-            'provider' => $this->whenLoaded('provider', fn() => [
-                'id' => $this->provider->id,
-                'name' => $this->provider->name,
-            ]),
+            'account_name' => $this->account_name,
+            'is_default' => $this->is_default,
+            'is_active' => $this->is_active,
+            'created_at' => $this->created_at,
         ];
     }
 }
