@@ -4,54 +4,104 @@ namespace App\Services\Payment;
 
 use App\Models\Order;
 use App\Models\OrderPayment;
+use App\Models\User;
+use App\Services\SupabaseStorageService;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\ValidationException;
 
 class OrderPaymentService
 {
-    public function submitPayment(array $data, UploadedFile $receiptFile): OrderPayment
+    public function __construct(
+        private readonly SupabaseStorageService $storageService
+    ) {
+    }
+
+    /**
+     * List payments for a specific order.
+     */
+    public function getForOrder(Order $order): Collection
     {
-        return DB::transaction(function () use ($data, $receiptFile) {
-            $order = Order::findOrFail($data['order_id']);
+        return $order->payments()
+            ->with(['walletProvider', 'verifiedBy'])
+            ->latest()
+            ->get();
+    }
 
-            if (in_array($order->status, ['cancelled', 'completed'])) {
-                throw ValidationException::withMessages([
-                    'order_id' => 'لا يمكن رفع دفعة لطلب ملغي أو مكتمل مسبقاً.',
-                ]);
-            }
+    /**
+     * Submit a new payment proof for an order.
+     */
+    public function submitPayment(User $customer, array $data, UploadedFile $receipt): OrderPayment
+    {
+        $order = Order::query()->findOrFail($data['order_id']);
 
-            // رفع الإيصال في الحاوية الخاصة المحمية
-            $path = $receiptFile->store('payment_receipts', 'supabase_private');
+        abort_unless(
+            $order->customer_id === $customer->id,
+            403,
+            'You are not allowed to submit a payment for this order.'
+        );
 
-            return OrderPayment::create([
-                'order_id' => $order->id,
-                'wallet_provider_id' => $data['wallet_provider_id'],
+        abort_if(
+            $order->status === 'cancelled',
+            422,
+            'Cannot submit a payment for a cancelled order.'
+        );
+
+        return DB::transaction(function () use ($order, $data, $receipt) {
+            $receiptPath = $this->storageService->uploadPrivate(
+                $receipt,
+                "orders/{$order->id}/payment-receipts"
+            );
+
+            return $order->payments()->create([
+                'wallet_provider_id' => $data['wallet_provider_id'] ?? null,
                 'amount' => $data['amount'],
-                'transaction_reference' => $data['transaction_reference'],
-                'receipt_image' => $path,
+                'transaction_reference' => $data['transaction_reference'] ?? null,
+                'receipt_image' => $receiptPath,
                 'status' => 'pending',
-                'paid_at' => now(),
-            ]);
+                'paid_at' => $data['paid_at'] ?? now(),
+            ])->load(['walletProvider', 'verifiedBy']);
         });
     }
 
-    public function verifyPayment(OrderPayment $payment, int $adminId, string $status, ?string $notes = null): OrderPayment
+    /**
+     * Verify a pending payment.
+     */
+    public function verify(User $admin, OrderPayment $payment): OrderPayment
     {
-        return DB::transaction(function () use ($payment, $adminId, $status, $notes) {
-            $payment->update([
-                'status' => $status,
-                'verified_by' => $adminId,
-                'verified_at' => now(),
-                'notes' => $notes,
-            ]);
+        $this->ensurePending($payment);
 
-            if ($status === 'approved') {
-                $payment->order->update(['status' => 'processing']);
-            }
+        $payment->update([
+            'status' => 'verified',
+            'verified_by' => $admin->id,
+            'verified_at' => now(),
+        ]);
 
-            return $payment;
-        });
+        return $payment->load(['walletProvider', 'verifiedBy']);
+    }
+
+    /**
+     * Reject a pending payment.
+     */
+    public function reject(User $admin, OrderPayment $payment): OrderPayment
+    {
+        $this->ensurePending($payment);
+
+        $payment->update([
+            'status' => 'rejected',
+            'verified_by' => $admin->id,
+            'verified_at' => now(),
+        ]);
+
+        return $payment->load(['walletProvider', 'verifiedBy']);
+    }
+
+    private function ensurePending(OrderPayment $payment): void
+    {
+        abort_unless(
+            $payment->status === 'pending',
+            422,
+            'Only pending payments can be verified or rejected.'
+        );
     }
 }

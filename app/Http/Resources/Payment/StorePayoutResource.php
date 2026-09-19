@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Payment;
 
+use App\Http\Resources\Wallet\UserWalletResource;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -11,15 +12,25 @@ class StorePayoutResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'store_id' => $this->store_id,
-            'store_name' => $this->store?->company_name,
-            'total_sales' => (float) $this->total_amount,
-            'platform_commission' => (float) $this->commission_amount,
-            'net_payout' => (float) $this->net_amount,
+            'order_store_id' => $this->order_store_id,
+
+            'store' => $this->whenLoaded('orderStore', fn () => [
+                'id' => $this->orderStore?->store?->id,
+                'company_name' => $this->orderStore?->store?->company_name,
+            ]),
+
+            'user_wallet' => new UserWalletResource(
+                $this->whenLoaded('userWallet')
+            ),
+
+            'total_amount' => $this->total_amount,
+            'commission_rate' => $this->commission_rate,
+            'commission_amount' => $this->commission_amount,
+            'net_amount' => $this->net_amount,
             'status' => $this->status,
             'transfer_reference' => $this->transfer_reference,
-            'transferred_at' => $this->transferred_at?->toIso8601String(),
-            'created_at' => $this->created_at?->toIso8601String(),
+            'paid_at' => $this->paid_at,
+            'created_at' => $this->created_at,
         ];
     }
 }

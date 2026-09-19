@@ -2,9 +2,9 @@
 
 namespace App\Http\Resources\Wallet;
 
+use App\Services\SupabaseStorageService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Illuminate\Support\Facades\Storage;
 
 class WalletProviderResource extends JsonResource
 {
@@ -12,12 +12,13 @@ class WalletProviderResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'name' => $this->name,
-            'logo_url' => $this->logo 
-                ? Storage::disk('supabase_public')->url($this->logo) 
-                : null,
-            'instructions' => $this->instructions,
-            'status' => $this->status,
+            'code' => $this->code,
+            'name_ar' => $this->name_ar,
+            'name_en' => $this->name_en,
+            'logo_url' => app(SupabaseStorageService::class)
+                ->publicUrl($this->logo_path),
+            'is_active' => $this->is_active,
+            'created_at' => $this->created_at,
         ];
     }
 }
