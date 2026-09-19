@@ -1,52 +1,88 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Api;
 
-use App\Http\Requests\StoreUserRequest;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\User\UpdateProfileRequest;
+use App\Http\Requests\User\UpdateUserStatusRequest;
+use App\Http\Resources\User\UserResource;
 use App\Models\User;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Hash;
+use App\Services\User\UserService;
+use App\Traits\ApiResponseTrait;
+use Illuminate\Http\Request;
 
 class UserController extends Controller
 {
-    public function index(): JsonResponse
-    {
-        return response()->json(User::with(['governorate', 'store', 'engineerProfile'])->paginate(20));
+    use ApiResponseTrait;
+
+    public function __construct(
+        private readonly UserService $userService
+    ) {
     }
 
-    public function store(StoreUserRequest $request): JsonResponse
+    /**
+     * Display all user accounts (administrative use).
+     *
+     * NOTE: intended for platform administrators. See the module-level note
+     * regarding the current absence of a role/permission system.
+     */
+    public function index()
     {
-        $data = $request->validated();
-        $data['password'] = Hash::make($data['password']);
+        $users = $this->userService->list();
 
-        $user = User::create($data);
-        return response()->json($user, 201);
+        return $this->successResponse(
+            UserResource::collection($users),
+            'Users retrieved successfully.'
+        );
     }
 
-    public function show($id): JsonResponse
+    /**
+     * Display a single user account.
+     */
+    public function show(User $user)
     {
-        $user = User::with(['governorate', 'store', 'engineerProfile', 'userWallets'])->findOrFail($id);
-        return response()->json($user);
+        return $this->successResponse(
+            new UserResource($user->load(['governorate', 'store', 'engineerProfile'])),
+            'User retrieved successfully.'
+        );
     }
 
-    public function update(StoreUserRequest $request, $id): JsonResponse
+    /**
+     * Update the authenticated user's own profile.
+     */
+    public function updateProfile(UpdateProfileRequest $request)
     {
-        $user = User::findOrFail($id);
-        $data = $request->validated();
+        $user = $this->userService->updateProfile(
+            $request->user(),
+            $request->validated()
+        );
 
-        if (!empty($data['password'])) {
-            $data['password'] = Hash::make($data['password']);
-        } else {
-            unset($data['password']);
-        }
-
-        $user->update($data);
-        return response()->json($user);
+        return $this->successResponse(
+            new UserResource($user),
+            'Profile updated successfully.'
+        );
     }
 
-    public function destroy($id): JsonResponse
+    /**
+     * Update a user account's status (administrative action).
+     */
+    public function updateStatus(UpdateUserStatusRequest $request, User $user)
     {
-        User::findOrFail($id)->delete();
-        return response()->json(['message' => 'User account deleted successfully']);
+        $user = $this->userService->updateStatus($user, $request->validated('status'));
+
+        return $this->successResponse(
+            new UserResource($user),
+            'User status updated successfully.'
+        );
+    }
+
+    /**
+     * Delete the authenticated user's own account.
+     */
+    public function destroy(Request $request)
+    {
+        $this->userService->deleteAccount($request->user());
+
+        return $this->successResponse(null, 'Account deleted successfully.');
     }
 }

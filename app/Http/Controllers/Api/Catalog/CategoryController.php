@@ -1,5 +1,15 @@
 <?php
 
+<<<<<<< HEAD
+namespace App\Http\Controllers\Api\Catalog;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+
+class CategoryController extends Controller
+{
+    //
+=======
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
@@ -91,4 +101,5 @@ class CategoryController extends Controller
 
         return $this->successResponse(null, 'Category deleted successfully.');
     }
+>>>>>>> c98dc2f4472927f1264e999c5a4f3e686d8b5da0
 }

@@ -1,5 +1,15 @@
 <?php
 
+<<<<<<< HEAD
+namespace App\Http\Controllers\Api\Catalog;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+
+class BrandController extends Controller
+{
+    //
+=======
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
@@ -89,4 +99,5 @@ class BrandController extends Controller
 
         return $this->successResponse(null, 'Brand deleted successfully.');
     }
+>>>>>>> c98dc2f4472927f1264e999c5a4f3e686d8b5da0
 }
