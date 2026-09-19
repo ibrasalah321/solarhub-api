@@ -32,8 +32,4 @@ class CartItemResource extends JsonResource
                 : null,
         ];
     }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> c98dc2f4472927f1264e999c5a4f3e686d8b5da0
