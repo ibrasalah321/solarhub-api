@@ -23,7 +23,7 @@ class EngineerProfileController extends Controller
     /**
      * Display approved engineers.
      */
-public function index(EngineerIndexRequest $request)
+    public function index(EngineerIndexRequest $request)
     {
         $engineers = $this->engineerProfileService
             ->getApprovedEngineers($request->validated());
