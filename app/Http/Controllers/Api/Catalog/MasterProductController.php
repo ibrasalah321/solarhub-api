@@ -1,10 +1,5 @@
 <?php
 
-<<<<<<< HEAD
-namespace App\Http\Controllers\Api\Catalog;
-
-use App\Http\Controllers\Controller;
-=======
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
@@ -14,14 +9,10 @@ use App\Http\Resources\Catalog\MasterProductResource;
 use App\Models\MasterProduct;
 use App\Services\SupabaseStorageService;
 use App\Traits\ApiResponseTrait;
->>>>>>> c98dc2f4472927f1264e999c5a4f3e686d8b5da0
 use Illuminate\Http\Request;
 
 class MasterProductController extends Controller
 {
-<<<<<<< HEAD
-    //
-=======
     use ApiResponseTrait;
 
     public function __construct(
@@ -119,5 +110,4 @@ class MasterProductController extends Controller
 
         return $this->successResponse(null, 'Product deleted successfully.');
     }
->>>>>>> c98dc2f4472927f1264e999c5a4f3e686d8b5da0
 }
