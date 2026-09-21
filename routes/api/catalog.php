@@ -1,11 +1,11 @@
 <?php
 
-use App\Http\Controllers\Api\Catalog\BrandController;
-use App\Http\Controllers\Api\Catalog\CategoryController;
+use App\Http\Controllers\Api\BrandController;
+use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\GovernorateController;
-use App\Http\Controllers\Api\Catalog\MasterProductController;
-use App\Http\Controllers\Api\Catalog\ProductImageController;
-use App\Http\Controllers\Api\Catalog\ProductSpecificationController;
+use App\Http\Controllers\Api\MasterProductController;
+use App\Http\Controllers\Api\ProductImageController;
+use App\Http\Controllers\Api\ProductSpecificationController;
 use Illuminate\Support\Facades\Route;
 
 // Public catalog browsing.
