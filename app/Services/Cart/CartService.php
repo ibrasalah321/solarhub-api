@@ -124,8 +124,4 @@ class CartService
             'You are not allowed to manage this cart item.'
         );
     }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> c98dc2f4472927f1264e999c5a4f3e686d8b5da0
