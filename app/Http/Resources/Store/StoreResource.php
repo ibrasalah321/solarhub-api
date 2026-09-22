@@ -40,3 +40,10 @@ class StoreResource extends JsonResource
         ];
     }
 }
+
+// GET /api/admin/engineers
+// Post /api/admin/engineer/approve
+// Post /api/admin/engineer/reject
+// GET /api/admin/stores
+// Post /api/admin/store/approve
+// Post /api/admin/store/reject
