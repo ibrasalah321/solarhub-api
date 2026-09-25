@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
         // المرحلة 1: تشغيل البيانات الثابتة (Reference Data)
         // -------------------------------------------------------------
         $this->call([
+            RolePermissionSeeder::class,
             SpecializationsSeeder::class,
             ServiceTypesSeeder::class,
             AdminUserSeeder::class,

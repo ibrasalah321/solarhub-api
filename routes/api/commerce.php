@@ -18,21 +18,28 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Orders (customer side).
     Route::get('/my/orders', [OrderController::class, 'index']);
-    Route::post('/my/orders', [OrderController::class, 'store']);
-    Route::get('/my/orders/{order}', [OrderController::class, 'show']);
-    Route::patch('/my/orders/{order}/cancel', [OrderController::class, 'cancel']);
+    Route::post('/my/orders', [OrderController::class, 'store'])
+        ->middleware('permission:orders.create');
+    Route::get('/my/orders/{order}', [OrderController::class, 'show'])
+        ->middleware('can:view,order');
+    Route::patch('/my/orders/{order}/cancel', [OrderController::class, 'cancel'])
+        ->middleware('can:cancel,order');
 
     // Order-store branches (store owner side + customer delivery confirmation).
     Route::get('/my/store-orders', [OrderStoreController::class, 'index']);
     Route::get('/order-stores/{orderStore}', [OrderStoreController::class, 'show']);
-    Route::patch('/order-stores/{orderStore}/status', [OrderStoreController::class, 'updateStatus']);
+    Route::patch('/order-stores/{orderStore}/status', [OrderStoreController::class, 'updateStatus'])
+        ->middleware('permission:orders.manage-status');
     Route::patch('/order-stores/{orderStore}/confirm-delivery', [OrderStoreController::class, 'confirmDelivery']);
 
     // Quote requests (negotiated pricing between customer and store).
     Route::get('/my/quote-requests', [QuoteRequestController::class, 'myRequests']);
     Route::get('/my/store-quote-requests', [QuoteRequestController::class, 'myStoreRequests']);
-    Route::post('/quote-requests', [QuoteRequestController::class, 'store']);
-    Route::patch('/quote-requests/{quoteRequest}/respond', [QuoteRequestController::class, 'respond']);
-    Route::patch('/quote-requests/{quoteRequest}/accept', [QuoteRequestController::class, 'accept']);
+    Route::post('/quote-requests', [QuoteRequestController::class, 'store'])
+        ->middleware('permission:quote-requests.create');
+    Route::patch('/quote-requests/{quoteRequest}/respond', [QuoteRequestController::class, 'respond'])
+        ->middleware('permission:quote-requests.respond');
+    Route::patch('/quote-requests/{quoteRequest}/accept', [QuoteRequestController::class, 'accept'])
+        ->middleware('permission:quote-requests.accept');
     Route::patch('/quote-requests/{quoteRequest}/reject', [QuoteRequestController::class, 'reject']);
 });

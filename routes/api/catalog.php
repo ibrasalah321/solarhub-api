@@ -21,9 +21,8 @@ Route::get('/governorates/{governorate}', [GovernorateController::class, 'show']
 Route::get('/master-products', [MasterProductController::class, 'index']);
 Route::get('/master-products/{masterProduct}', [MasterProductController::class, 'show']);
 
-// Admin catalog management.
-// NOTE: no role/permission system yet — protected by auth:sanctum only. Add a role/policy gate before production.
-Route::middleware('auth:sanctum')->group(function () {
+// Admin catalog management — requires the catalog.manage permission.
+Route::middleware(['auth:sanctum', 'permission:catalog.manage'])->group(function () {
     Route::post('/brands', [BrandController::class, 'store']);
     Route::put('/brands/{brand}', [BrandController::class, 'update']);
     Route::delete('/brands/{brand}', [BrandController::class, 'destroy']);

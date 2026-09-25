@@ -13,7 +13,7 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable, SoftDeletes,HasRoles;
+    use HasFactory, Notifiable, SoftDeletes, HasRoles;
 
     protected $table = 'users';
 
@@ -103,5 +103,33 @@ class User extends Authenticatable
     public function verifiedPayments(): HasMany
     {
         return $this->hasMany(OrderPayment::class, 'verified_by');
+    }
+
+    /**
+     * Resolve the professional approval status for this user based on their role.
+     *
+     * Approval is a property of the professional profile (engineer profile /
+     * store), never of the role itself. Customers and admins are always
+     * considered approved because they have no professional profile to gate.
+     */
+    public function professionalApprovalStatus(): string
+    {
+        if ($this->hasRole('engineer')) {
+            return $this->engineerProfile?->approval_status ?? 'pending';
+        }
+
+        if ($this->hasRole('supplier')) {
+            return $this->store?->approval_status ?? 'pending';
+        }
+
+        return 'approved';
+    }
+
+    /**
+     * Determine whether the user's professional profile is approved.
+     */
+    public function isApprovedProfessional(): bool
+    {
+        return $this->professionalApprovalStatus() === 'approved';
     }
 }

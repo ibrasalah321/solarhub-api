@@ -91,4 +91,22 @@ class UserFactory extends Factory
             'email_verified_at' => null,
         ]);
     }
+
+    /**
+     * Keep the Spatie role in sync with the user's `user_type` after creation.
+     *
+     * The RolePermissionSeeder must have run first (DatabaseSeeder guarantees
+     * this). If the matching role does not exist yet the assignment is skipped
+     * so factory usage never fails in isolation.
+     */
+    public function configure(): static
+    {
+        return $this->afterCreating(function (User $user): void {
+            $role = $user->user_type;
+
+            if ($role && \Spatie\Permission\Models\Role::where('name', $role)->where('guard_name', 'web')->exists()) {
+                $user->syncRoles([$role]);
+            }
+        });
+    }
 }
