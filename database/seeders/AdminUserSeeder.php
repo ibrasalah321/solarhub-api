@@ -4,34 +4,35 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use RuntimeException;
 
 class AdminUserSeeder extends Seeder
 {
     public function run(): void
     {
-        $govId = DB::table('governorates')->value('id');
+        $admin = User::query()
+            ->where('email', 'admin@solarhub.com')
+            ->first();
 
-        DB::table('users')->updateOrInsert(
-            ['email' => 'admin@solarhub.com'],
-            [
-                'name'                => 'مدير النظام',
-                'phone'               => '777000000',
-                'user_type'           => 'admin',
-                'password'            => Hash::make('password'),
-                'status'              => 'active',
-                'governorate_id'      => $govId,
-                'default_coordinates' => null,
-                'created_at'          => now(),
-                'updated_at'          => now(),
-            ]
-        );
+        if ($admin === null) {
+            $password = env('SOLARHUB_ADMIN_PASSWORD');
 
-        // Grant the Spatie admin role (RolePermissionSeeder runs first).
-        $admin = User::where('email', 'admin@solarhub.com')->first();
-        if ($admin) {
-            $admin->syncRoles(['admin']);
+            if (! is_string($password) || $password === '') {
+                throw new RuntimeException(
+                    'Set SOLARHUB_ADMIN_PASSWORD before creating the admin account.'
+                );
+            }
+
+            $admin = User::query()->create([
+                'name' => 'مدير النظام',
+                'email' => 'admin@solarhub.com',
+                'phone' => '777000000',
+                'password' => Hash::make($password),
+                'status' => 'active',
+            ]);
         }
+
+        $admin->syncRoles(['admin']);
     }
 }

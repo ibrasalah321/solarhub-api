@@ -1,20 +1,36 @@
 <?php
 
-use App\Http\Controllers\Api\NotificationController;
-use App\Http\Controllers\Api\NotificationTemplateController;
+use App\Http\Controllers\Api\Notification\NotificationController;
+use App\Http\Controllers\Api\Notification\NotificationTemplateController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/my/notifications', [NotificationController::class, 'index']);
-    Route::patch('/my/notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
-    Route::patch('/my/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
 
-    // Administrative template management — requires notification-templates.manage.
+    Route::patch('/my/notifications/{notification}/read', [
+        NotificationController::class,
+        'markAsRead',
+    ]);
+
+    Route::patch('/my/notifications/read-all', [
+        NotificationController::class,
+        'markAllAsRead',
+    ]);
+
     Route::middleware('permission:notification-templates.manage')->group(function () {
         Route::get('/notification-templates', [NotificationTemplateController::class, 'index']);
-        Route::get('/notification-templates/{notificationTemplate}', [NotificationTemplateController::class, 'show']);
+        Route::get('/notification-templates/{notificationTemplate}', [
+            NotificationTemplateController::class,
+            'show',
+        ]);
         Route::post('/notification-templates', [NotificationTemplateController::class, 'store']);
-        Route::put('/notification-templates/{notificationTemplate}', [NotificationTemplateController::class, 'update']);
-        Route::delete('/notification-templates/{notificationTemplate}', [NotificationTemplateController::class, 'destroy']);
+        Route::put('/notification-templates/{notificationTemplate}', [
+            NotificationTemplateController::class,
+            'update',
+        ]);
+        Route::delete('/notification-templates/{notificationTemplate}', [
+            NotificationTemplateController::class,
+            'destroy',
+        ]);
     });
 });

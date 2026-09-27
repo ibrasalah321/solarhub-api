@@ -1,7 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
-
+namespace App\Http\Controllers\Api\Cart;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Cart\CartResource;
 use App\Services\Cart\CartService;

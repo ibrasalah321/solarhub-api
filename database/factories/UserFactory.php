@@ -2,89 +2,61 @@
 
 namespace Database\Factories;
 
-
 use App\Models\Governorate;
-
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
+use Spatie\Permission\Models\Role;
 
 /**
  * @extends Factory<User>
  */
 class UserFactory extends Factory
 {
-    /**
-     * The current password being used by the factory.
-     */
-    protected static ?string $password;
+    protected static ?string $password = null;
 
-    /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
-     */
     public function definition(): array
     {
-
-        $lng = fake()->longitude(42.5, 48.5);
-        $lat = fake()->latitude(13.0, 16.5);
         return [
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
+            'phone' => fake()->unique()->numerify('7########'),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
-            'remember_token' => Str::random(10),
-            'governorate_id' => Governorate::inRandomOrder()->value('id') ?? DB::table('governorates')->value('id') ?? 1,
-            'user_type' => fake()->randomElement(['customer', 'engineer', 'supplier']),
-            'address' => fake()->streetAddress(),
-            'status' => 'approved', 
-            'default_coordinates' => DB::raw("ST_GeographyFromText('SRID=4326;POINT({$lng} {$lat})')"),
-
-            'created_at' => fake()->dateTimeBetween('-6 months', 'now'),
-            'updated_at' => now(),
-            'deleted_at' => null,
+            'governorate_id' => Governorate::query()->inRandomOrder()->value('id'),
+            'status' => 'active',
+            'default_coordinates' => null,
         ];
     }
 
-    /**
-     * حالة خاصة: توليد مستخدم عميل فقط (Customer)
-     */
+    public function configure(): static
+    {
+        return $this->afterCreating(function (User $user): void {
+            $this->assignRole($user, 'customer');
+        });
+    }
+
     public function customer(): static
     {
-        return $this->state(fn (array $attributes) => [
-            'user_type' => 'customer',
-            'status' => 'approved',
-        ]);
+        return $this->afterCreating(function (User $user): void {
+            $this->assignRole($user, 'customer');
+        });
     }
 
-    /**
-     * حالة خاصة: توليد مستخدم مهندس (Engineer)
-     */
     public function engineer(): static
     {
-        return $this->state(fn (array $attributes) => [
-            'user_type' => 'engineer',
-            'status' => fake()->randomElement(['approved', 'approved', 'pending']), // أغلبهم معتمدون
-        ]);
+        return $this->afterCreating(function (User $user): void {
+            $this->assignRole($user, 'engineer');
+        });
     }
 
-    /**
-     * حالة خاصة: توليد مستخدم مورد / متجر (Supplier)
-     */
     public function supplier(): static
     {
-        return $this->state(fn (array $attributes) => [
-            'user_type' => 'supplier',
-            'status' => 'approved',
-        ]);
+        return $this->afterCreating(function (User $user): void {
+            $this->assignRole($user, 'supplier');
+        });
     }
 
-    /**
-     * Indicate that the model's email address should be unverified.
-     */
     public function unverified(): static
     {
         return $this->state(fn (array $attributes) => [
@@ -92,21 +64,9 @@ class UserFactory extends Factory
         ]);
     }
 
-    /**
-     * Keep the Spatie role in sync with the user's `user_type` after creation.
-     *
-     * The RolePermissionSeeder must have run first (DatabaseSeeder guarantees
-     * this). If the matching role does not exist yet the assignment is skipped
-     * so factory usage never fails in isolation.
-     */
-    public function configure(): static
+    private function assignRole(User $user, string $role): void
     {
-        return $this->afterCreating(function (User $user): void {
-            $role = $user->user_type;
-
-            if ($role && \Spatie\Permission\Models\Role::where('name', $role)->where('guard_name', 'web')->exists()) {
-                $user->syncRoles([$role]);
-            }
-        });
+        Role::findOrCreate($role, 'web');
+        $user->syncRoles([$role]);
     }
 }

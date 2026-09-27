@@ -34,11 +34,13 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        DB::statement(
-            'ALTER TABLE store_ratings
-             ADD CONSTRAINT store_ratings_rating_check
-             CHECK (rating BETWEEN 1 AND 5)'
-        );
+        if (DB::getDriverName() === 'pgsql') {
+    DB::statement(
+        'ALTER TABLE store_ratings
+         ADD CONSTRAINT store_ratings_rating_check
+         CHECK (rating BETWEEN 1 AND 5)'
+    );
+}
     }
 
     public function down(): void
