@@ -26,6 +26,8 @@ class VerifyOtpRequest extends FormRequest
 
     public function rules(): array
     {
+        $otpLength = $this->otpLength();
+
         return [
             'email' => [
                 'bail',
@@ -39,8 +41,11 @@ class VerifyOtpRequest extends FormRequest
                 'bail',
                 'required',
                 'string',
-                'size:6',
-                'regex:/^[0-9]{6}$/',
+                'size:'.$otpLength,
+                'regex:'.sprintf(
+                    '/^[0-9]{%d}$/',
+                    $otpLength
+                ),
             ],
         ];
     }
@@ -48,8 +53,26 @@ class VerifyOtpRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'code.size' => 'The verification code must be exactly 6 digits.',
-            'code.regex' => 'The verification code must contain digits only.',
+            'code.size' => sprintf(
+                'The verification code must be exactly %d digits.',
+                $this->otpLength()
+            ),
+
+            'code.regex' => sprintf(
+                'The verification code must contain exactly %d digits.',
+                $this->otpLength()
+            ),
         ];
+    }
+
+    private function otpLength(): int
+    {
+        return min(
+            8,
+            max(
+                4,
+                (int) config('verification.otp.length', 6)
+            )
+        );
     }
 }
