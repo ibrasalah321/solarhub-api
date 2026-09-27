@@ -8,24 +8,8 @@ use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
-/**
- * Seeds the four platform roles and their `resource.action` permissions.
- *
- * Design rules:
- *  - Exactly four roles: admin, customer, engineer, supplier (guard: web).
- *  - Permissions are role CAPABILITIES only. They never encode approval state
- *    or ownership — those are handled by EnsureProfileIsApproved middleware and
- *    Policies respectively.
- *  - The admin role is granted every permission.
- */
 class RolePermissionSeeder extends Seeder
 {
-    /**
-     * Permissions grouped by the role that receives them (besides admin, which
-     * receives all of them).
-     *
-     * @var array<string, list<string>>
-     */
     private array $rolePermissions = [
         'customer' => [
             'orders.view',
@@ -36,6 +20,7 @@ class RolePermissionSeeder extends Seeder
             'service-requests.cancel',
             'quote-requests.create',
             'quote-requests.accept',
+            'quote-requests.reject',
             'offers.accept',
             'store-ratings.create',
             'store-ratings.update',
@@ -67,49 +52,50 @@ class RolePermissionSeeder extends Seeder
         ],
     ];
 
-    /**
-     * Permissions that only administrators hold.
-     *
-     * @var list<string>
-     */
     private array $adminOnlyPermissions = [
+        'engineers.view-pending',
+        'engineers.approve',
+        'engineers.reject',
+        'stores.view-pending',
         'stores.approve',
+        'stores.reject',
         'stores.delete',
         'engineer-profiles.approve',
         'catalog.manage',
         'users.manage',
         'settings.manage',
         'notification-templates.manage',
+        'wallet-providers.manage',
+        'order-payments.verify',
+        'store-payouts.manage',
     ];
 
     public function run(): void
     {
-        // Ensure a clean permission cache before (re)seeding.
-        App::make(PermissionRegistrar::class)->forgetCachedPermissions();
+        $registrar = App::make(PermissionRegistrar::class);
+        $registrar->forgetCachedPermissions();
 
         $guard = 'web';
 
-        // 1. Create every permission.
-        $allPermissions = $this->adminOnlyPermissions;
-        foreach ($this->rolePermissions as $permissions) {
-            $allPermissions = array_merge($allPermissions, $permissions);
-        }
-        $allPermissions = array_values(array_unique($allPermissions));
+        $allPermissions = array_values(array_unique(array_merge(
+            $this->adminOnlyPermissions,
+            ...array_values($this->rolePermissions)
+        )));
 
         foreach ($allPermissions as $permission) {
             Permission::findOrCreate($permission, $guard);
         }
 
-        // 2. Create roles and attach their permissions.
         $admin = Role::findOrCreate('admin', $guard);
-        $admin->syncPermissions(Permission::where('guard_name', $guard)->get());
+        $admin->syncPermissions(
+            Permission::query()->where('guard_name', $guard)->get()
+        );
 
         foreach ($this->rolePermissions as $roleName => $permissions) {
             $role = Role::findOrCreate($roleName, $guard);
             $role->syncPermissions($permissions);
         }
 
-        // 3. Refresh the cache so the new state is immediately available.
-        App::make(PermissionRegistrar::class)->forgetCachedPermissions();
+        $registrar->forgetCachedPermissions();
     }
 }

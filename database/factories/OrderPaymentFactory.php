@@ -2,21 +2,29 @@
 
 namespace Database\Factories;
 
-use Illuminate\Database\Eloquent\Factories\Factory;
 use App\Models\Order;
-use App\Models\User;
+use App\Models\OrderPayment;
+use Illuminate\Database\Eloquent\Factories\Factory;
 
+/**
+ * @extends Factory<OrderPayment>
+ */
 class OrderPaymentFactory extends Factory
 {
+    protected $model = OrderPayment::class;
+
     public function definition(): array
     {
         return [
-            'order_id' => Order::inRandomOrder()->first()?->id ?? 1,
-            'payment_method' => $this->faker->randomElement(['الكريمي', 'جيب', 'وون كاش']),
-            'amount' => $this->faker->randomFloat(2, 100, 2000),
+            'order_id' => Order::factory(),
+            'wallet_provider_id' => null,
+            'amount' => fake()->randomFloat(2, 100, 2000),
+            'transaction_reference' => null,
             'receipt_image' => 'receipts/default.jpg',
-            'status' => $this->faker->randomElement(['pending', 'verified', 'rejected']),
-            'verified_by' => User::where('user_type', 'admin')->inRandomOrder()->first()?->id,
+            'status' => 'pending',
+            'verified_by' => null,
+            'paid_at' => now(),
+            'verified_at' => null,
         ];
     }
 }

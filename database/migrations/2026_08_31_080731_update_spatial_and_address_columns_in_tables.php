@@ -9,6 +9,12 @@ return new class extends Migration
 {
     public function up(): void
     {
+
+    if (DB::getDriverName() === 'sqlite') {
+        return;
+    }
+
+    // بقية الكود الموجود كما هو...
         /*
         |--------------------------------------------------------------------------
         | 1. تفعيل PostGIS
@@ -18,6 +24,9 @@ return new class extends Migration
         DB::statement(
             'CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA extensions;'
         );
+
+
+    // بقية الكود الموجود كما هو...
 
         DB::statement(
             'SET search_path TO public, extensions;'
@@ -157,7 +166,9 @@ return new class extends Migration
         | Portfolio Items
         |--------------------------------------------------------------------------
         */
-
+        if (DB::getDriverName() === 'sqlite') {
+        return;
+        }
         DB::statement(
             'DROP INDEX IF EXISTS idx_portfolio_items_coordinates'
         );

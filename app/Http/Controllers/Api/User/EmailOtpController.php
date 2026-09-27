@@ -1,8 +1,10 @@
 <?php
 
-namespace App\Http\Controllers;
 
-use App\Http\Requests\StoreEmailOtpRequest;
+namespace App\Http\Controllers\Api\User;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\StoreEmailOtpRequest;
 use App\Models\EmailOtp;
 use Illuminate\Http\JsonResponse;
 

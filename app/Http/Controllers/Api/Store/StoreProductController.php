@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api\Store;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Store\StoreStoreProductRequest;
@@ -20,9 +20,6 @@ class StoreProductController extends Controller
     ) {
     }
 
-    /**
-     * Public storefront browsing, filterable by governorate_id, category_id, store_id.
-     */
     public function index(Request $request)
     {
         $products = $this->storeProductService->browse($request->only([
@@ -37,22 +34,28 @@ class StoreProductController extends Controller
         );
     }
 
-    /**
-     * Display a single listing.
-     */
     public function show(StoreProduct $storeProduct)
     {
+        // هذا مسار عام؛ لا يعرض منتجًا غير نشط أو متجرًا غير معتمد.
+        abort_unless(
+            $storeProduct->status === 'active'
+                && $storeProduct->store?->approval_status === 'approved',
+            404
+        );
+
         return $this->successResponse(
             new StoreProductResource(
-                $storeProduct->load(['masterProduct.specifications', 'masterProduct.images', 'store', 'governorate'])
+                $storeProduct->load([
+                    'masterProduct.specifications',
+                    'masterProduct.images',
+                    'store',
+                    'governorate',
+                ])
             ),
             'Product retrieved successfully.'
         );
     }
 
-    /**
-     * List the authenticated store owner's own listings.
-     */
     public function myListings(Request $request)
     {
         $products = $this->storeProductService->getMyListings($request->user());
@@ -63,9 +66,6 @@ class StoreProductController extends Controller
         );
     }
 
-    /**
-     * Create a new listing.
-     */
     public function store(StoreStoreProductRequest $request)
     {
         $product = $this->storeProductService->createListing(
@@ -80,11 +80,10 @@ class StoreProductController extends Controller
         );
     }
 
-    /**
-     * Update an existing listing.
-     */
-    public function update(UpdateStoreProductRequest $request, StoreProduct $storeProduct)
-    {
+    public function update(
+        UpdateStoreProductRequest $request,
+        StoreProduct $storeProduct
+    ) {
         $product = $this->storeProductService->updateListing(
             $request->user(),
             $storeProduct,
@@ -97,13 +96,16 @@ class StoreProductController extends Controller
         );
     }
 
-    /**
-     * Delete a listing.
-     */
     public function destroy(Request $request, StoreProduct $storeProduct)
     {
-        $this->storeProductService->deleteListing($request->user(), $storeProduct);
+        $this->storeProductService->deleteListing(
+            $request->user(),
+            $storeProduct
+        );
 
-        return $this->successResponse(null, 'Product listing deleted successfully.');
+        return $this->successResponse(
+            null,
+            'Product listing deleted successfully.'
+        );
     }
 }
