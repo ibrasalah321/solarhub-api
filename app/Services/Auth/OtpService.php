@@ -18,25 +18,22 @@ class OtpService
     {
         $this->invalidate($user);
 
+        $otpLength = $this->otpLength();
+        $maximumValue = (10 ** $otpLength) - 1;
+
         $plainCode = str_pad(
-            (string) random_int(0, 999999),
-            6,
+            (string) random_int(0, $maximumValue),
+            $otpLength,
             '0',
             STR_PAD_LEFT
-        );
-
-        $expiresInMinutes = max(
-            1,
-            (int) config(
-                'verification.otp.expires_minutes',
-                10
-            )
         );
 
         $otp = $user->emailOtps()->create([
             'code' => Hash::make($plainCode),
             'attempts' => 0,
-            'expires_at' => now()->addMinutes($expiresInMinutes),
+            'expires_at' => now()->addMinutes(
+                $this->expiresInMinutes()
+            ),
             'invalidated_at' => null,
         ]);
 
@@ -45,12 +42,18 @@ class OtpService
             'plain_code' => $plainCode,
         ];
     }
-    public function sendOtpEmail(User $user , string $plainCode): void
-    {
-        Mail::to($user->email)
-            ->send(new VerificationOtpMail($plainCode));
-    }
 
+    public function sendOtpEmail(
+        User $user,
+        string $plainCode
+    ): void {
+        Mail::to($user->email)->send(
+            new VerificationOtpMail(
+                code: $plainCode,
+                expiresInMinutes: $this->expiresInMinutes()
+            )
+        );
+    }
 
     public function verify(
         string $email,
@@ -60,10 +63,7 @@ class OtpService
             ->where('email', $email)
             ->first();
 
-        if (
-            ! $user ||
-            $user->email_verified_at !== null
-        ) {
+        if (! $user || $user->email_verified_at !== null) {
             $this->throwInvalidCode();
         }
 
@@ -149,7 +149,7 @@ class OtpService
     {
         $rateLimitKey = 'otp-resend:'.hash(
             'sha256',
-            $email
+            strtolower($email)
         );
 
         $maxAttempts = max(
@@ -193,10 +193,7 @@ class OtpService
             ->where('email', $email)
             ->first();
 
-        if (
-            ! $user ||
-            $user->email_verified_at !== null
-        ) {
+        if (! $user || $user->email_verified_at !== null) {
             return null;
         }
 
@@ -218,6 +215,28 @@ class OtpService
             ->update([
                 'invalidated_at' => now(),
             ]);
+    }
+
+    private function otpLength(): int
+    {
+        return min(
+            8,
+            max(
+                4,
+                (int) config('verification.otp.length', 6)
+            )
+        );
+    }
+
+    private function expiresInMinutes(): int
+    {
+        return max(
+            1,
+            (int) config(
+                'verification.otp.expires_minutes',
+                10
+            )
+        );
     }
 
     private function throwInvalidCode(): never
