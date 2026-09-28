@@ -25,7 +25,7 @@ class UserResource extends JsonResource
             // NOTE: the `users` table has no `role` column yet. This key is
             // kept in the payload shape the client expects but is always
             // null until a role/permission system is added to the schema.
-            'role' => null,
+            'role' => $this->getRoleNames()->first(),
 
             'governorate' => $this->whenLoaded('governorate', fn () => [
                 'id' => $this->governorate?->id,

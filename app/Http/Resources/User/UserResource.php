@@ -23,9 +23,8 @@ class UserResource extends JsonResource
                 'name_ar' => $this->governorate?->name_ar,
             ]),
 
-            'has_store' => $this->whenLoaded('store', fn () => $this->store !== null),
-            'has_engineer_profile' => $this->whenLoaded('engineerProfile', fn () => $this->engineerProfile !== null),
-
+            'has_store' => $this->relationLoaded('store') ? $this->store !== null: null,
+            'has_engineer_profile' => $this->relationLoaded('engineerProfile') ? $this->engineerProfile !== null: null,
             'created_at' => $this->created_at,
         ];
     }

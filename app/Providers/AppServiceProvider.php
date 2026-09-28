@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Auth\Notifications\ResetPassword;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -25,6 +26,16 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureRateLimiting();
+        ResetPassword::createUrlUsing(
+            function (object $notifiable, string $token): string {
+                return rtrim(
+                    (string) config('app.frontend_url'),
+                    '/'
+                )
+                .'/reset-password?token='.urlencode($token)
+                .'&email='.urlencode($notifiable->getEmailForPasswordReset());
+            }
+        );
 
         Gate::before(function (User $user, string $ability) {
             return $user->hasRole('admin') ? true : null;
@@ -35,39 +46,72 @@ class AppServiceProvider extends ServiceProvider
      * Configure the application rate limiters.
      */
     private function configureRateLimiting(): void
-    {
-        RateLimiter::for(
-            'otp-verify',
-            function (Request $request): Limit {
-                return Limit::perMinute(10)->by(
-                    $this->otpRateLimitKey(
-                        $request,
-                        'otp-verify'
-                    )
-                );
-            }
+{
+    RateLimiter::for(
+        'otp-verify',
+        function (Request $request): Limit {
+            return Limit::perMinute(10)->by(
+                $this->otpRateLimitKey(
+                    $request,
+                    'otp-verify'
+                )
+            );
+        }
+    );
+
+    RateLimiter::for(
+        'otp-resend',
+        function (Request $request): Limit {
+            $maximumAttempts = max(
+                1,
+                (int) config(
+                    'verification.otp.resend_max_attempts',
+                    3
+                )
+            );
+
+            return Limit::perMinute($maximumAttempts)->by(
+                $this->otpRateLimitKey(
+                    $request,
+                    'otp-resend'
+                )
+            );
+        }
+    );
+
+    // Login rate limiter
+    RateLimiter::for(
+        'login',
+        function (Request $request): Limit {
+            $login = strtolower(
+                trim((string) $request->input('login'))
+            );
+
+            return Limit::perMinute(5)->by(
+                hash(
+                    'sha256',
+                    'login|'.$login.'|'.$request->ip()
+                )
+            );
+        }
+    );
+    // Forgot password rate limiter
+RateLimiter::for(
+    'forgot-password',
+    function (Request $request): Limit {
+        $email = strtolower(
+            trim((string) $request->input('email'))
         );
 
-        RateLimiter::for(
-            'otp-resend',
-            function (Request $request): Limit {
-                $maximumAttempts = max(
-                    1,
-                    (int) config(
-                        'verification.otp.resend_max_attempts',
-                        3
-                    )
-                );
-
-                return Limit::perMinute($maximumAttempts)->by(
-                    $this->otpRateLimitKey(
-                        $request,
-                        'otp-resend'
-                    )
-                );
-            }
+        return Limit::perMinute(3)->by(
+            hash(
+                'sha256',
+                'forgot-password|'.$email.'|'.$request->ip()
+            )
         );
     }
+);
+}
 
     /**
      * Build a secure rate-limit key using email and IP address.
