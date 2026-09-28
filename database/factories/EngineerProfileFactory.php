@@ -24,13 +24,13 @@ class EngineerProfileFactory extends Factory
             'license_number' => fake()->unique()->numerify('ENG-#####'),
             'years_of_experience' => fake()->numberBetween(2,20),
             'bio' => fake()->paragraph(3),
-            'profile_photo' => fake()->imageUrl(300, 300, 'people'),
+            'profile_photo_path' => fake()->imageUrl(300, 300, 'people'),
             'rejection_reason' => null,
             'approval_status' => 'approved',
             'approved_at'=> now(),
             'created_at' => fake()->dateTimeBetween('-6 months', 'now'),
             'updated_at' => now(),
-            'deleted_at' => null,
+           
         ];
     }
     /**

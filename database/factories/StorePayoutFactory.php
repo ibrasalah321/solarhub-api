@@ -2,26 +2,85 @@
 
 namespace Database\Factories;
 
+use App\Models\OrderStore;
+use App\Models\StorePayout;
+use App\Models\UserWallet;
 use Illuminate\Database\Eloquent\Factories\Factory;
-use App\Models\Order;
-use App\Models\Store;
 
+/**
+ * @extends Factory<StorePayout>
+ */
 class StorePayoutFactory extends Factory
 {
+    protected $model = StorePayout::class;
+
     public function definition(): array
     {
-        $total = $this->faker->randomFloat(2, 200, 1500);
-        $commission = $total * 0.05;
-        $net = $total - $commission;
+        $totalAmount = fake()->randomFloat(2, 200, 1500);
+        $commissionRate = 5.00;
+        $commissionAmount = round(
+            $totalAmount * ($commissionRate / 100),
+            2
+        );
+        $netAmount = round(
+            $totalAmount - $commissionAmount,
+            2
+        );
+
+        $status = fake()->randomElement([
+            'pending',
+            'completed',
+            'failed',
+        ]);
 
         return [
-            'order_id' => Order::inRandomOrder()->first()?->id ?? 1,
-            'store_id' => Store::inRandomOrder()->first()?->id ?? 1,
-            'total_amount' => $total,
-            'platform_commission' => $commission,
-            'net_amount' => $net,
-            'transfer_status' => $this->faker->randomElement(['pending', 'completed', 'failed']),
-            'transfer_reference' => $this->faker->uuid(),
+            'order_store_id' => OrderStore::factory(),
+
+            'user_wallet_id' => UserWallet::query()
+                ->inRandomOrder()
+                ->value('id') ?? UserWallet::factory(),
+
+            'total_amount' => $totalAmount,
+            'commission_rate' => $commissionRate,
+            'commission_amount' => $commissionAmount,
+            'net_amount' => $netAmount,
+            'status' => $status,
+
+            'transfer_reference' => $status === 'completed'
+                ? 'TRX-'.strtoupper(fake()->bothify('??########'))
+                : null,
+
+            'paid_at' => $status === 'completed'
+                ? now()
+                : null,
         ];
+    }
+
+    public function pending(): static
+    {
+        return $this->state(fn (): array => [
+            'status' => 'pending',
+            'transfer_reference' => null,
+            'paid_at' => null,
+        ]);
+    }
+
+    public function completed(): static
+    {
+        return $this->state(fn (): array => [
+            'status' => 'completed',
+            'transfer_reference' =>
+                'TRX-'.strtoupper(fake()->bothify('??########')),
+            'paid_at' => now(),
+        ]);
+    }
+
+    public function failed(): static
+    {
+        return $this->state(fn (): array => [
+            'status' => 'failed',
+            'transfer_reference' => null,
+            'paid_at' => null,
+        ]);
     }
 }

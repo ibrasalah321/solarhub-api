@@ -51,8 +51,7 @@ class ServiceRequestFactory extends Factory
             'status' => 'open_for_bids',
 
             'location_coordinates' => DB::raw(
-                "ST_GeographyFromText('SRID=4326;POINT({$lng} {$lat})')"
-            ),
+"extensions.ST_GeographyFromText('SRID=4326;POINT({$lng} {$lat})')"            ),
 
             'created_at' => fake()->dateTimeBetween('-3 months', 'now'),
             'updated_at' => now(),
