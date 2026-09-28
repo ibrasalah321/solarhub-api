@@ -26,7 +26,7 @@ class DatabaseSeeder extends Seeder
             SpecializationsSeeder::class,
             ServiceTypesSeeder::class,
             AdminUserSeeder::class,
-            
+
         ]);
 
         // -------------------------------------------------------------
@@ -37,7 +37,7 @@ class DatabaseSeeder extends Seeder
         // -------------------------------------------------------------
         // المرحلة 3: إنشاء مهندسين بملفاتهم الشخصية وشهاداتهم وتخصصاتهم
         // -------------------------------------------------------------
-        
+
         // جلب جميع معرّفات التخصصات المتاحة
         $specializationIds = DB::table('specializations')->pluck('id')->toArray();
 
@@ -58,16 +58,10 @@ class DatabaseSeeder extends Seeder
             if (!empty($specializationIds)) {
                 $randomSpecs = fake()->randomElements($specializationIds, fake()->numberBetween(1, 3));
                 foreach ($randomSpecs as $specId) {
-                    DB::table('engineer_specializations')->updateOrInsert(
-                        [
-                            'engineer_id' => $engineer->id,
-                            'specialization_id' => $specId,
-                        ],
-                        [
-                            'created_at' => now(),
-                            'updated_at' => now(),
-                        ]
-                    );
+                                        DB::table('engineer_specializations')->insertOrIgnore([
+                        'engineer_id' => $engineer->id,
+                        'specialization_id' => $specId,
+                    ]);
                 }
             }
         }
