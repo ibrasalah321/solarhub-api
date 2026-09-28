@@ -9,18 +9,53 @@ class GovernoratesSeeder extends Seeder
 {
     public function run(): void
     {
-        $now = now();
         $governorates = [
-            ['name_ar' => 'صنعاء', 'name_en' => 'Sanaa', 'is_active' => true, 'created_at' => $now, 'updated_at' => $now],
-            ['name_ar' => 'عدن', 'name_en' => 'Aden', 'is_active' => true, 'created_at' => $now, 'updated_at' => $now],
-            ['name_ar' => 'تعز', 'name_en' => 'Taiz', 'is_active' => true, 'created_at' => $now, 'updated_at' => $now],
-            ['name_ar' => 'الحديدة', 'name_en' => 'Al Hudaydah', 'is_active' => true, 'created_at' => $now, 'updated_at' => $now],
-            ['name_ar' => 'حضرموت', 'name_en' => 'Hadhramaut', 'is_active' => true, 'created_at' => $now, 'updated_at' => $now],
-            ['name_ar' => 'إب', 'name_en' => 'Ibb', 'is_active' => true, 'created_at' => $now, 'updated_at' => $now],
-            ['name_ar' => 'ذمار', 'name_en' => 'Dhamar', 'is_active' => true, 'created_at' => $now, 'updated_at' => $now],
-            ['name_ar' => 'مأرب', 'name_en' => 'Marib', 'is_active' => true, 'created_at' => $now, 'updated_at' => $now],
+            [
+                'name_ar' => 'صنعاء',
+                'name_en' => 'Sanaa',
+            ],
+            [
+                'name_ar' => 'عدن',
+                'name_en' => 'Aden',
+            ],
+            [
+                'name_ar' => 'تعز',
+                'name_en' => 'Taiz',
+            ],
+            [
+                'name_ar' => 'الحديدة',
+                'name_en' => 'Al Hudaydah',
+            ],
+            [
+                'name_ar' => 'حضرموت',
+                'name_en' => 'Hadhramaut',
+            ],
+            [
+                'name_ar' => 'إب',
+                'name_en' => 'Ibb',
+            ],
+            [
+                'name_ar' => 'ذمار',
+                'name_en' => 'Dhamar',
+            ],
+            [
+                'name_ar' => 'مأرب',
+                'name_en' => 'Marib',
+            ],
         ];
 
-        DB::table('governorates')->insert($governorates);
+        foreach ($governorates as $governorate) {
+            DB::table('governorates')->updateOrInsert(
+                [
+                    'name_ar' => $governorate['name_ar'],
+                ],
+                [
+                    'name_en' => $governorate['name_en'],
+                    'is_active' => true,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]
+            );
+        }
     }
 }
