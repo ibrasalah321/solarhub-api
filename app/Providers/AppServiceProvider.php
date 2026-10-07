@@ -19,6 +19,16 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureRateLimiting();
+        ResetPassword::createUrlUsing(
+            function (object $notifiable, string $token): string {
+                return rtrim(
+                    (string) config('app.frontend_url'),
+                    '/'
+                )
+                .'/reset-password?token='.urlencode($token)
+                .'&email='.urlencode($notifiable->getEmailForPasswordReset());
+            }
+        );
 
         Gate::before(function (User $user, string $ability) {
             return $user->hasRole('admin') ? true : null;
@@ -59,6 +69,8 @@ class AppServiceProvider extends ServiceProvider
             );
         });
     }
+);
+}
 
     private function otpRateLimitKey(Request $request, string $action): string
     {
