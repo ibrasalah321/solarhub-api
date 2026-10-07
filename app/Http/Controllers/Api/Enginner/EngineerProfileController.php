@@ -3,13 +3,13 @@
 namespace App\Http\Controllers\Api\Enginner;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Engineer\EngineerIndexRequest;
 use App\Http\Requests\Engineer\UpdateEngineerProfileRequest;
 use App\Http\Resources\Engineer\EngineerListResource;
 use App\Http\Resources\Engineer\EngineerProfileResource;
 use App\Services\Engineer\EngineerProfileService;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\Request;
-use App\Http\Requests\Engineer\EngineerIndexRequest;
 
 class EngineerProfileController extends Controller
 {
@@ -17,8 +17,7 @@ class EngineerProfileController extends Controller
 
     public function __construct(
         private readonly EngineerProfileService $engineerProfileService
-    ) {
-    }
+    ) {}
 
     /**
      * Display approved engineers.
@@ -56,7 +55,7 @@ class EngineerProfileController extends Controller
         $engineer = $this->engineerProfileService
             ->getMyProfile($request->user());
 
-        if (!$engineer) {
+        if (! $engineer) {
             return $this->errorResponse(
                 'Engineer profile not found.',
                 null,
@@ -78,7 +77,7 @@ class EngineerProfileController extends Controller
         $engineer = $this->engineerProfileService
             ->getMyProfile($request->user());
 
-        if (!$engineer) {
+        if (! $engineer) {
             return $this->errorResponse(
                 'Engineer profile not found.',
                 null,

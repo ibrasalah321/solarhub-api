@@ -13,40 +13,37 @@ class StoreProductService
     /**
      * Public storefront browsing of active listings, with basic filters.
      */
-   public function browse(array $filters): LengthAwarePaginator
-{
-    return StoreProduct::query()
-        ->with([
-            'masterProduct.brand',
-            'masterProduct.category',
-            'store',
-            'governorate',
-        ])
-        ->where('status', 'active')
-        ->whereHas('store', function (Builder $storeQuery) {
-            $storeQuery->where('approval_status', 'approved');
-        })
-        ->when(
-            $filters['governorate_id'] ?? null,
-            fn (Builder $query, $id) =>
-                $query->where('governorate_id', $id)
-        )
-        ->when(
-            $filters['category_id'] ?? null,
-            fn (Builder $query, $id) =>
-                $query->whereHas(
+    public function browse(array $filters): LengthAwarePaginator
+    {
+        return StoreProduct::query()
+            ->with([
+                'masterProduct.brand',
+                'masterProduct.category',
+                'store',
+                'governorate',
+            ])
+            ->where('status', 'active')
+            ->whereHas('store', function (Builder $storeQuery) {
+                $storeQuery->where('approval_status', 'approved');
+            })
+            ->when(
+                $filters['governorate_id'] ?? null,
+                fn (Builder $query, $id) => $query->where('governorate_id', $id)
+            )
+            ->when(
+                $filters['category_id'] ?? null,
+                fn (Builder $query, $id) => $query->whereHas(
                     'masterProduct',
-                    fn (Builder $productQuery) =>
-                        $productQuery->where('category_id', $id)
+                    fn (Builder $productQuery) => $productQuery->where('category_id', $id)
                 )
-        )
-        ->when(
-            $filters['store_id'] ?? null,
-            fn (Builder $query, $id) =>
-                $query->where('store_id', $id)
-        )
-        ->paginate(20);
-}
+            )
+            ->when(
+                $filters['store_id'] ?? null,
+                fn (Builder $query, $id) => $query->where('store_id', $id)
+            )
+            ->paginate(20);
+    }
+
     /**
      * List the authenticated store owner's own listings.
      */

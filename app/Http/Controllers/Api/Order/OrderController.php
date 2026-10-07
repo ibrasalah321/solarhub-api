@@ -1,10 +1,12 @@
 <?php
 
 namespace App\Http\Controllers\Api\Order;
+
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Order\StoreOrderRequest;
 use App\Http\Resources\Order\OrderResource;
 use App\Models\Order;
+use App\Services\Notification\DomainNotificationDispatcher;
 use App\Services\Order\OrderService;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\Request;
@@ -14,9 +16,9 @@ class OrderController extends Controller
     use ApiResponseTrait;
 
     public function __construct(
-        private readonly OrderService $orderService
-    ) {
-    }
+        private readonly OrderService $orderService,
+        private readonly DomainNotificationDispatcher $notifications
+    ) {}
 
     /**
      * Display the authenticated customer's orders.
@@ -58,6 +60,8 @@ class OrderController extends Controller
             $request->validated()
         );
 
+        $this->notifications->orderCreated($request->user(), $order);
+
         return $this->successResponse(
             new OrderResource($order),
             'Order placed successfully.',
@@ -71,6 +75,9 @@ class OrderController extends Controller
     public function cancel(Request $request, Order $order)
     {
         $order = $this->orderService->cancelOrder($request->user(), $order);
+        $order->loadMissing('orderStores.store.user');
+
+        $this->notifications->orderCancelled($request->user(), $order);
 
         return $this->successResponse(
             new OrderResource($order),

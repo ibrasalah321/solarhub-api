@@ -5,16 +5,12 @@ namespace App\Services\Store;
 use App\Models\Store;
 use App\Models\User;
 use App\Services\SupabaseStorageService;
-use Illuminate\Support\Facades\DB;
 
 class StoreService
 {
     public function __construct(
         private readonly SupabaseStorageService $storageService
-    ) {
-    }
-
-
+    ) {}
 
     /**
      * Update the authenticated store owner's own profile.
@@ -46,8 +42,6 @@ class StoreService
 
         return $store;
     }
-
-
 
     private function ensureOwnership(User $user, Store $store): void
     {

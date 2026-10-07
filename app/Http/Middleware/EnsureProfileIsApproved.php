@@ -34,8 +34,8 @@ class EnsureProfileIsApproved
             return response()->json([
                 'success' => false,
                 'message' => 'Your professional profile is '
-                    . $user->professionalApprovalStatus()
-                    . '. This action is only available once your profile has been approved.',
+                    .$user->professionalApprovalStatus()
+                    .'. This action is only available once your profile has been approved.',
             ], Response::HTTP_FORBIDDEN);
         }
 

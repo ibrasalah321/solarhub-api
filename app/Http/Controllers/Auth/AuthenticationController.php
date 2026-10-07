@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Requests\Auth\RoleLoginRequest;
 use App\Http\Resources\UserResource;
 use App\Services\Auth\AuthenticationService;
 use App\Traits\ApiResponseTrait;
@@ -16,8 +17,7 @@ class AuthenticationController extends Controller
 
     public function __construct(
         private readonly AuthenticationService $authenticationService
-    ) {
-    }
+    ) {}
 
     /**
      * Log in with email or phone (via the unified `login` field) and password.
@@ -25,6 +25,22 @@ class AuthenticationController extends Controller
     public function login(LoginRequest $request): JsonResponse
     {
         $result = $this->authenticationService->login($request->validated());
+
+        return $this->successResponse(
+            [
+                'user' => new UserResource($result['user']),
+                'token' => $result['token'],
+            ],
+            'Logged in successfully.'
+        );
+    }
+
+    public function loginForRole(RoleLoginRequest $request): JsonResponse
+    {
+        $result = $this->authenticationService->login(
+            $request->validated(),
+            $request->route('accountRole')
+        );
 
         return $this->successResponse(
             [

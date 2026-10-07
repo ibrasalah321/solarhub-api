@@ -17,7 +17,7 @@ class AuthenticationService
      * @param  array{login: string, password: string}  $credentials
      * @return array{user: User, token: string}
      */
-    public function login(array $credentials): array
+    public function login(array $credentials, ?string $requiredRole = null): array
     {
         $user = $this->findByLogin($credentials['login']);
 
@@ -44,6 +44,14 @@ class AuthenticationService
             403,
             'Your account is suspended or inactive. Please contact support.'
         );
+
+        if ($requiredRole !== null && ! $user->hasRole($requiredRole)) {
+            throw ValidationException::withMessages([
+                'login' => [
+                    'These credentials do not belong to the selected account type.',
+                ],
+            ]);
+        }
 
         $token = $user->createToken('auth_token')->plainTextToken;
 

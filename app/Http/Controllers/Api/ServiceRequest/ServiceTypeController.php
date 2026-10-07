@@ -13,8 +13,7 @@ class ServiceTypeController extends Controller
 
     public function __construct(
         private readonly ServiceTypeService $serviceTypeService
-    ) {
-    }
+    ) {}
 
     public function index()
     {

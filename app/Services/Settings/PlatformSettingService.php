@@ -9,8 +9,7 @@ class PlatformSettingService
 {
     public function __construct(
         private readonly SupabaseStorageService $storageService
-    ) {
-    }
+    ) {}
 
     /**
      * Get the platform settings, creating the singleton row with sane

@@ -6,15 +6,18 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\Engineer\StoreEngineerOnboardingRequest;
 use App\Http\Resources\Auth\Engineer\EngineerOnboardingResource;
 use App\Services\Auth\Engineer\EngineerOnboardingService;
+use App\Services\Notification\DomainNotificationDispatcher;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\Request;
+
 class EngineerOnboardingController extends Controller
 {
     use ApiResponseTrait;
-    public function __construct(private readonly EngineerOnboardingService $engineerOnboardingService)
-    {
-        
-    }
+
+    public function __construct(
+        private readonly EngineerOnboardingService $engineerOnboardingService,
+        private readonly DomainNotificationDispatcher $notifications
+    ) {}
 
     public function store(StoreEngineerOnboardingRequest $engineerOnboardingRequest)
     {
@@ -22,19 +25,27 @@ class EngineerOnboardingController extends Controller
         $data = $engineerOnboardingRequest->validated();
 
         // 2. استدعاء service وتمرير user + data
-        $engineer = $this->engineerOnboardingService->store($engineerOnboardingRequest->user(),$data);
+        $engineer = $this->engineerOnboardingService->store($engineerOnboardingRequest->user(), $data);
+
+        $this->notifications->professionalApplicationSubmitted(
+            $engineerOnboardingRequest->user(),
+            'engineer'
+        );
 
         // 3. إرجاع EngineerOnboardingResource
-        return $this->successResponse(new EngineerOnboardingResource($engineer) , '');
+        return $this->successResponse(new EngineerOnboardingResource($engineer), '');
     }
-    public function status(Request $request){
+
+    public function status(Request $request)
+    {
         $engineer = $this->engineerOnboardingService->status(
             $request->user()
         );
-        if(!$engineer){
-            return $this->successResponse(null,'Engineer onboarding has not been submitted yet.');
+        if (! $engineer) {
+            return $this->successResponse(null, 'Engineer onboarding has not been submitted yet.');
         }
-        return $this->successResponse(new EngineerOnboardingResource($engineer) , 'Engineer onboarding status retrieved successfully.');
+
+        return $this->successResponse(new EngineerOnboardingResource($engineer), 'Engineer onboarding status retrieved successfully.');
 
     }
 }

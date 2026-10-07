@@ -17,8 +17,7 @@ class ProductImageController extends Controller
 
     public function __construct(
         private readonly ProductImageService $productImageService
-    ) {
-    }
+    ) {}
 
     public function store(StoreProductImageRequest $request)
     {

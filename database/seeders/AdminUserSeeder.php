@@ -27,10 +27,15 @@ class AdminUserSeeder extends Seeder
             $admin = User::query()->create([
                 'name' => 'مدير النظام',
                 'email' => 'admin@solarhub.com',
+                'email_verified_at' => now(),
                 'phone' => '777000000',
                 'password' => Hash::make($password),
                 'status' => 'active',
             ]);
+        }
+
+        if ($admin->email_verified_at === null) {
+            $admin->forceFill(['email_verified_at' => now()])->save();
         }
 
         $admin->syncRoles(['admin']);

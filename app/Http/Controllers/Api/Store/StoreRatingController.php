@@ -18,8 +18,7 @@ class StoreRatingController extends Controller
 
     public function __construct(
         private readonly StoreRatingService $storeRatingService
-    ) {
-    }
+    ) {}
 
     /**
      * Display approved ratings for a specific store (public).

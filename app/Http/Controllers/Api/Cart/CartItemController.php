@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Controllers\Api\Cart;
+
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Cart\StoreCartItemRequest;
 use App\Http\Requests\Cart\UpdateCartItemRequest;
@@ -16,8 +17,7 @@ class CartItemController extends Controller
 
     public function __construct(
         private readonly CartService $cartService
-    ) {
-    }
+    ) {}
 
     /**
      * Add a product to the authenticated user's cart.

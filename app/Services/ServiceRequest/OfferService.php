@@ -12,10 +12,10 @@ use Illuminate\Support\Facades\DB;
 class OfferService
 {
     public function __construct(
-        private readonly SupabaseStorageService $storageService) {
-    }
+        private readonly SupabaseStorageService $storageService) {}
 
-    public function create(EngineerProfile $engineer,ServiceRequest $serviceRequest,array $data): Offer {
+    public function create(EngineerProfile $engineer, ServiceRequest $serviceRequest, array $data): Offer
+    {
 
         abort_unless(
             $engineer->approval_status === 'approved',
@@ -62,7 +62,8 @@ class OfferService
         ]);
     }
 
-    public function getEngineerOffers(EngineerProfile $engineer) {
+    public function getEngineerOffers(EngineerProfile $engineer)
+    {
         return $engineer->offers()
             ->with([
                 'serviceRequest.serviceType',
@@ -72,7 +73,8 @@ class OfferService
             ->paginate(10);
     }
 
-    public function update(EngineerProfile $engineer,Offer $offer,array $data): Offer {
+    public function update(EngineerProfile $engineer, Offer $offer, array $data): Offer
+    {
 
         $this->ensureEngineerOwnership(
             $engineer,
@@ -115,7 +117,8 @@ class OfferService
         ]);
     }
 
-    public function delete(EngineerProfile $engineer,Offer $offer): void {
+    public function delete(EngineerProfile $engineer, Offer $offer): void
+    {
 
         $this->ensureEngineerOwnership(
             $engineer,
@@ -145,7 +148,8 @@ class OfferService
         $offer->delete();
     }
 
-    private function ensureEngineerOwnership(EngineerProfile $engineer,Offer $offer): void {
+    private function ensureEngineerOwnership(EngineerProfile $engineer, Offer $offer): void
+    {
         abort_unless(
             $offer->engineer_id === $engineer->id,
             403,
@@ -153,7 +157,8 @@ class OfferService
         );
     }
 
-    public function getRequestOffers(User $customer,ServiceRequest $serviceRequest) {
+    public function getRequestOffers(User $customer, ServiceRequest $serviceRequest)
+    {
         $this->ensureCustomerOwnership(
             $customer,
             $serviceRequest
@@ -168,7 +173,8 @@ class OfferService
             ->get();
     }
 
-    private function ensureCustomerOwnership(User $customer,ServiceRequest $serviceRequest): void {
+    private function ensureCustomerOwnership(User $customer, ServiceRequest $serviceRequest): void
+    {
         abort_unless(
             $serviceRequest->customer_id === $customer->id,
             403,
@@ -176,7 +182,8 @@ class OfferService
         );
     }
 
-    public function accept(User $customer,Offer $offer): Offer {
+    public function accept(User $customer, Offer $offer): Offer
+    {
 
         return DB::transaction(function () use (
             $customer,

@@ -9,6 +9,7 @@ use App\Http\Resources\ServiceRequest\OfferResource;
 use App\Models\Offer;
 use App\Models\ServiceRequest;
 use App\Services\Engineer\EngineerProfileService;
+use App\Services\Notification\DomainNotificationDispatcher;
 use App\Services\ServiceRequest\OfferService;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\Request;
@@ -19,15 +20,16 @@ class OfferController extends Controller
 
     public function __construct(
         private readonly OfferService $offerService,
-        private readonly EngineerProfileService $engineerProfileService
-    ) {
-    }
+        private readonly EngineerProfileService $engineerProfileService,
+        private readonly DomainNotificationDispatcher $notifications
+    ) {}
 
-    public function store(StoreOfferRequest $request,ServiceRequest $serviceRequest) {
+    public function store(StoreOfferRequest $request, ServiceRequest $serviceRequest)
+    {
         $engineer = $this->engineerProfileService
             ->getMyProfile($request->user());
 
-        if (!$engineer) {
+        if (! $engineer) {
             return $this->errorResponse(
                 'Engineer profile not found.',
                 null,
@@ -39,6 +41,12 @@ class OfferController extends Controller
             $engineer,
             $serviceRequest,
             $request->validated()
+        );
+        $offer->loadMissing('serviceRequest.customer');
+
+        $this->notifications->offerSubmitted(
+            $request->user(),
+            $offer
         );
 
         return $this->successResponse(
@@ -53,7 +61,7 @@ class OfferController extends Controller
         $engineer = $this->engineerProfileService
             ->getMyProfile($request->user());
 
-        if (!$engineer) {
+        if (! $engineer) {
             return $this->errorResponse(
                 'Engineer profile not found.',
                 null,
@@ -70,11 +78,12 @@ class OfferController extends Controller
         );
     }
 
-    public function update(UpdateOfferRequest $request,Offer $offer) {
+    public function update(UpdateOfferRequest $request, Offer $offer)
+    {
         $engineer = $this->engineerProfileService
             ->getMyProfile($request->user());
 
-        if (!$engineer) {
+        if (! $engineer) {
             return $this->errorResponse(
                 'Engineer profile not found.',
                 null,
@@ -94,11 +103,12 @@ class OfferController extends Controller
         );
     }
 
-    public function destroy(Request $request,Offer $offer) {
+    public function destroy(Request $request, Offer $offer)
+    {
         $engineer = $this->engineerProfileService
             ->getMyProfile($request->user());
 
-        if (!$engineer) {
+        if (! $engineer) {
             return $this->errorResponse(
                 'Engineer profile not found.',
                 null,
@@ -117,7 +127,8 @@ class OfferController extends Controller
         );
     }
 
-    public function requestOffers(Request $request,ServiceRequest $serviceRequest) {
+    public function requestOffers(Request $request, ServiceRequest $serviceRequest)
+    {
         $offers = $this->offerService->getRequestOffers(
             $request->user(),
             $serviceRequest
@@ -129,8 +140,14 @@ class OfferController extends Controller
         );
     }
 
-    public function accept(Request $request,Offer $offer) {
+    public function accept(Request $request, Offer $offer)
+    {
         $offer = $this->offerService->accept(
+            $request->user(),
+            $offer
+        );
+
+        $this->notifications->offerAccepted(
             $request->user(),
             $offer
         );

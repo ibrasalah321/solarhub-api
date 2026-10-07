@@ -21,6 +21,10 @@ class MasterProduct extends Model
         'description',
         'datasheet_file',
         'is_active',
+        'source_key',
+        'source_name',
+        'source_page',
+        'source_notes',
     ];
 
     protected function casts(): array

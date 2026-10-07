@@ -4,17 +4,16 @@ namespace App\Services\ServiceRequest;
 
 use App\Models\ServiceRequest;
 use App\Models\User;
-
 use App\Services\SupabaseStorageService;
 
 class ServiceRequestService
 {
     public function __construct(
         private readonly SupabaseStorageService $storageService
-    ) {
-    }
+    ) {}
 
-    public function create(User $customer,array $data): ServiceRequest {
+    public function create(User $customer, array $data): ServiceRequest
+    {
 
         if (isset($data['attachment'])) {
             $data['attachment_file'] =
@@ -37,7 +36,9 @@ class ServiceRequestService
             'governorate',
         ]);
     }
-    public function getCustomerRequests(User $customer,array $filters = []) {
+
+    public function getCustomerRequests(User $customer, array $filters = [])
+    {
         return ServiceRequest::query()
             ->where('customer_id', $customer->id)
             ->with([
@@ -50,6 +51,7 @@ class ServiceRequestService
             ->latest()
             ->paginate($filters['per_page'] ?? 10);
     }
+
     public function getOpenRequests(array $filters = [])
     {
         return ServiceRequest::query()
@@ -81,7 +83,8 @@ class ServiceRequestService
             ->findOrFail($id);
     }
 
-    public function update(User $customer,ServiceRequest $serviceRequest,array $data): ServiceRequest {
+    public function update(User $customer, ServiceRequest $serviceRequest, array $data): ServiceRequest
+    {
 
         $this->ensureCustomerOwnership(
             $customer,
@@ -117,7 +120,8 @@ class ServiceRequestService
         ]);
     }
 
-    public function cancel(User $customer,ServiceRequest $serviceRequest): ServiceRequest {
+    public function cancel(User $customer, ServiceRequest $serviceRequest): ServiceRequest
+    {
 
         $this->ensureCustomerOwnership(
             $customer,
@@ -141,8 +145,8 @@ class ServiceRequestService
         ]);
     }
 
-
-    private function ensureCustomerOwnership(User $customer,ServiceRequest $serviceRequest): void {
+    private function ensureCustomerOwnership(User $customer, ServiceRequest $serviceRequest): void
+    {
         abort_unless(
             $serviceRequest->customer_id === $customer->id,
             403,

@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\OrderQuotation;
+use Illuminate\Database\Seeder;
 
 class OrderQuotationSeeder extends Seeder
 {

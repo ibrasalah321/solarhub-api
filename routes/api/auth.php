@@ -20,6 +20,20 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('guest')->group(function () {
     Route::post('/auth/register', [RegistrationController::class, 'register']);
 
+    foreach (['customer', 'engineer', 'supplier'] as $accountRole) {
+        Route::post(
+            "/auth/{$accountRole}/register",
+            [RegistrationController::class, 'registerForRole']
+        )->defaults('accountRole', $accountRole);
+
+        Route::post(
+            "/auth/{$accountRole}/login",
+            [AuthenticationController::class, 'loginForRole']
+        )
+            ->defaults('accountRole', $accountRole)
+            ->middleware('throttle:login');
+    }
+
     Route::post('/auth/otp/verify', [OtpController::class, 'verify'])
         ->middleware('throttle:otp-verify');
 

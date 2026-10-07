@@ -18,8 +18,7 @@ class EngineerCertificateController extends Controller
     public function __construct(
         private readonly EngineerCertificateService $certificateService,
         private readonly EngineerProfileService $engineerProfileService
-    ) {
-    }
+    ) {}
 
     /**
      * Display authenticated engineer certificates.
@@ -29,7 +28,7 @@ class EngineerCertificateController extends Controller
         $engineer = $this->engineerProfileService
             ->getMyProfile($request->user());
 
-        if (!$engineer) {
+        if (! $engineer) {
             return $this->errorResponse(
                 'Engineer profile not found.',
                 null,
@@ -54,7 +53,7 @@ class EngineerCertificateController extends Controller
         $engineer = $this->engineerProfileService
             ->getMyProfile($request->user());
 
-        if (!$engineer) {
+        if (! $engineer) {
             return $this->errorResponse(
                 'Engineer profile not found.',
                 null,
@@ -78,11 +77,12 @@ class EngineerCertificateController extends Controller
     /**
      * Delete engineer certificate.
      */
-    public function destroy(Request $request,EngineerCertificate $certificate) {
+    public function destroy(Request $request, EngineerCertificate $certificate)
+    {
         $engineer = $this->engineerProfileService
             ->getMyProfile($request->user());
 
-        if (!$engineer) {
+        if (! $engineer) {
             return $this->errorResponse(
                 'Engineer profile not found.',
                 null,

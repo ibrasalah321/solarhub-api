@@ -17,8 +17,7 @@ class MasterProductController extends Controller
 
     public function __construct(
         private readonly SupabaseStorageService $storageService
-    ) {
-    }
+    ) {}
 
     public function index(Request $request)
     {
