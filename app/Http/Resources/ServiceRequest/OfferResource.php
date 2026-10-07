@@ -12,8 +12,7 @@ class OfferResource extends JsonResource
         return [
             'id' => $this->id,
 
-            'service_request_id' =>
-                $this->service_request_id,
+            'service_request_id' => $this->service_request_id,
 
             'engineer' => $this->whenLoaded(
                 'engineer',
@@ -21,31 +20,23 @@ class OfferResource extends JsonResource
                     return [
                         'id' => $this->engineer->id,
                         'name' => $this->engineer->user?->name,
-                        'profile_photo_path' =>
-                            $this->engineer->profile_photo_path,
-                        'years_of_experience' =>
-                            $this->engineer->years_of_experience,
+                        'profile_photo_path' => $this->engineer->profile_photo_path,
+                        'years_of_experience' => $this->engineer->years_of_experience,
                     ];
                 }
             ),
 
-            'proposed_cost' =>
-                $this->proposed_cost,
+            'proposed_cost' => $this->proposed_cost,
 
-            'execution_time_days' =>
-                $this->execution_time_days,
+            'execution_time_days' => $this->execution_time_days,
 
-            'technical_proposal' =>
-                $this->technical_proposal,
+            'technical_proposal' => $this->technical_proposal,
 
-            'proposal_file' =>
-                $this->proposal_file,
+            'proposal_file' => $this->proposal_file,
 
-            'status' =>
-                $this->status,
+            'status' => $this->status,
 
-            'created_at' =>
-                $this->created_at,
+            'created_at' => $this->created_at,
         ];
     }
 }

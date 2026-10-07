@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Order\UpdateOrderStoreStatusRequest;
 use App\Http\Resources\Order\OrderStoreResource;
 use App\Models\OrderStore;
+use App\Services\Notification\DomainNotificationDispatcher;
 use App\Services\Order\OrderStoreService;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\Request;
@@ -15,9 +16,9 @@ class OrderStoreController extends Controller
     use ApiResponseTrait;
 
     public function __construct(
-        private readonly OrderStoreService $orderStoreService
-    ) {
-    }
+        private readonly OrderStoreService $orderStoreService,
+        private readonly DomainNotificationDispatcher $notifications
+    ) {}
 
     /**
      * Display the authenticated store owner's order branches,
@@ -60,6 +61,12 @@ class OrderStoreController extends Controller
             $request->validated('status'),
             $request->validated('notes')
         );
+        $orderStore->loadMissing('order.customer', 'store');
+
+        $this->notifications->orderStatusChanged(
+            $request->user(),
+            $orderStore
+        );
 
         return $this->successResponse(
             new OrderStoreResource($orderStore),
@@ -73,6 +80,12 @@ class OrderStoreController extends Controller
     public function confirmDelivery(Request $request, OrderStore $orderStore)
     {
         $orderStore = $this->orderStoreService->confirmDelivery(
+            $request->user(),
+            $orderStore
+        );
+        $orderStore->loadMissing('order.customer', 'store.user');
+
+        $this->notifications->deliveryConfirmed(
             $request->user(),
             $orderStore
         );

@@ -13,8 +13,7 @@ class SpecializationController extends Controller
 
     public function __construct(
         private readonly SpecializationService $specializationService
-    ) {
-    }
+    ) {}
 
     public function index()
     {

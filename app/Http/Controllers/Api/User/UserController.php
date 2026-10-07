@@ -17,8 +17,7 @@ class UserController extends Controller
 
     public function __construct(
         private readonly UserService $userService
-    ) {
-    }
+    ) {}
 
     /**
      * Display all user accounts (administrative use).

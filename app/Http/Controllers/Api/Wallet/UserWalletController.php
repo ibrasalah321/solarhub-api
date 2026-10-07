@@ -17,8 +17,7 @@ class UserWalletController extends Controller
 
     public function __construct(
         private readonly UserWalletService $userWalletService
-    ) {
-    }
+    ) {}
 
     /**
      * Display the authenticated user's wallets.

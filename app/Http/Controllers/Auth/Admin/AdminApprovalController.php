@@ -9,16 +9,18 @@ use App\Http\Resources\Auth\Admin\AdminStoreApprovalResource;
 use App\Models\EngineerProfile;
 use App\Models\Store;
 use App\Services\Auth\Admin\AdminApprovalService;
+use App\Services\Notification\DomainNotificationDispatcher;
 use App\Traits\ApiResponseTrait;
+use Illuminate\Http\Request;
 
 class AdminApprovalController extends Controller
 {
     use ApiResponseTrait;
 
     public function __construct(
-        private readonly AdminApprovalService $adminApprovalService
-    ) {
-    }
+        private readonly AdminApprovalService $adminApprovalService,
+        private readonly DomainNotificationDispatcher $notifications
+    ) {}
 
     public function pendingEngineers()
     {
@@ -30,10 +32,16 @@ class AdminApprovalController extends Controller
         );
     }
 
-    public function approveEngineer(EngineerProfile $engineer)
+    public function approveEngineer(Request $request, EngineerProfile $engineer)
     {
         $engineer = $this->adminApprovalService
             ->approveEngineer($engineer);
+
+        $this->notifications->professionalDecision(
+            $request->user(),
+            $engineer->load('user'),
+            true
+        );
 
         return $this->successResponse(
             new AdminEngineerApprovalResource($engineer),
@@ -52,6 +60,12 @@ class AdminApprovalController extends Controller
             $data['rejection_reason']
         );
 
+        $this->notifications->professionalDecision(
+            $request->user(),
+            $engineer->load('user'),
+            false
+        );
+
         return $this->successResponse(
             new AdminEngineerApprovalResource($engineer),
             'Engineer application rejected successfully.'
@@ -68,10 +82,16 @@ class AdminApprovalController extends Controller
         );
     }
 
-    public function approveStore(Store $store)
+    public function approveStore(Request $request, Store $store)
     {
         $store = $this->adminApprovalService
             ->approveStore($store);
+
+        $this->notifications->professionalDecision(
+            $request->user(),
+            $store->load('user'),
+            true
+        );
 
         return $this->successResponse(
             new AdminStoreApprovalResource($store),
@@ -88,6 +108,12 @@ class AdminApprovalController extends Controller
         $store = $this->adminApprovalService->rejectStore(
             $store,
             $data['rejection_reason']
+        );
+
+        $this->notifications->professionalDecision(
+            $request->user(),
+            $store->load('user'),
+            false
         );
 
         return $this->successResponse(

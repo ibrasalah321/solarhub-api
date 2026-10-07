@@ -19,10 +19,10 @@ class EngineerRatingController extends Controller
 
     public function __construct(
         private readonly EngineerRatingService $ratingService
-    ) {
-    }
+    ) {}
 
-    public function store(StoreEngineerRatingRequest $request,ServiceRequest $serviceRequest) {
+    public function store(StoreEngineerRatingRequest $request, ServiceRequest $serviceRequest)
+    {
         $rating = $this->ratingService->create(
             $request->user(),
             $serviceRequest,
@@ -36,7 +36,8 @@ class EngineerRatingController extends Controller
         );
     }
 
-    public function update(UpdateEngineerRatingRequest $request,EngineerRating $rating) {
+    public function update(UpdateEngineerRatingRequest $request, EngineerRating $rating)
+    {
         $rating = $this->ratingService->update(
             $request->user(),
             $rating,
@@ -49,7 +50,8 @@ class EngineerRatingController extends Controller
         );
     }
 
-    public function destroy(Request $request,EngineerRating $rating) {
+    public function destroy(Request $request, EngineerRating $rating)
+    {
         $this->ratingService->delete(
             $request->user(),
             $rating
@@ -61,7 +63,8 @@ class EngineerRatingController extends Controller
         );
     }
 
-    public function engineerRatings(EngineerProfile $engineer) {
+    public function engineerRatings(EngineerProfile $engineer)
+    {
         $ratings = $this->ratingService
             ->getEngineerRatings($engineer);
 

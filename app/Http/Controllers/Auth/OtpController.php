@@ -16,8 +16,7 @@ class OtpController extends Controller
 
     public function __construct(
         private readonly OtpService $otpService
-    ) {
-    }
+    ) {}
 
     public function verify(
         VerifyOtpRequest $request

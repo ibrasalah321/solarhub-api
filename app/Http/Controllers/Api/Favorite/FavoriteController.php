@@ -42,7 +42,7 @@ class FavoriteController extends Controller
     {
         $deleted = $this->favoriteService->removeFavorite($request->user(), $storeProductId);
 
-        if (!$deleted) {
+        if (! $deleted) {
             return response()->json(['message' => 'العنصر غير موجود في قائمة المفضلة.'], 404);
         }
 

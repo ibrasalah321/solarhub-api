@@ -19,15 +19,14 @@ class PortfolioItemController extends Controller
     public function __construct(
         private readonly PortfolioItemService $portfolioService,
         private readonly EngineerProfileService $engineerProfileService
-    ) {
-    }
+    ) {}
 
     public function index(Request $request)
     {
         $engineer = $this->engineerProfileService
             ->getMyProfile($request->user());
 
-        if (!$engineer) {
+        if (! $engineer) {
             return $this->errorResponse(
                 'Engineer profile not found.',
                 null,
@@ -49,7 +48,7 @@ class PortfolioItemController extends Controller
         $engineer = $this->engineerProfileService
             ->getMyProfile($request->user());
 
-        if (!$engineer) {
+        if (! $engineer) {
             return $this->errorResponse(
                 'Engineer profile not found.',
                 null,
@@ -69,11 +68,12 @@ class PortfolioItemController extends Controller
         );
     }
 
-    public function update(UpdatePortfolioItemRequest $request,PortfolioItem $portfolioItem) {
+    public function update(UpdatePortfolioItemRequest $request, PortfolioItem $portfolioItem)
+    {
         $engineer = $this->engineerProfileService
             ->getMyProfile($request->user());
 
-        if (!$engineer) {
+        if (! $engineer) {
             return $this->errorResponse(
                 'Engineer profile not found.',
                 null,
@@ -93,11 +93,12 @@ class PortfolioItemController extends Controller
         );
     }
 
-    public function destroy(Request $request,PortfolioItem $portfolioItem) {
+    public function destroy(Request $request, PortfolioItem $portfolioItem)
+    {
         $engineer = $this->engineerProfileService
             ->getMyProfile($request->user());
 
-        if (!$engineer) {
+        if (! $engineer) {
             return $this->errorResponse(
                 'Engineer profile not found.',
                 null,
@@ -116,7 +117,8 @@ class PortfolioItemController extends Controller
         );
     }
 
-    public function publicIndex(Request $request,int $engineer) {
+    public function publicIndex(Request $request, int $engineer)
+    {
         $perPage = min(
             max((int) $request->query('per_page', 10), 1),
             50

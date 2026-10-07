@@ -7,6 +7,15 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class StoreEngineerOnboardingRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        if (is_string($this->license_number)) {
+            $this->merge([
+                'license_number' => trim($this->license_number),
+            ]);
+        }
+    }
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -22,11 +31,9 @@ class StoreEngineerOnboardingRequest extends FormRequest
      */
     public function rules(): array
     {
-
         return [
-            'license_number' => 'string|nullable|max:100',
-            'cv' => 'required|file|mimes:pdf,doc,docx|max:5120'
-
+            'license_number' => ['required', 'string', 'max:100'],
+            'cv' => ['required', 'file', 'mimes:pdf,doc,docx', 'max:5120'],
         ];
     }
 }

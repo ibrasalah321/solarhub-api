@@ -1,10 +1,10 @@
 <?php
 
 namespace App\Http\Controllers\Api\Rating;
+
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Rating\StoreStoreRatingRequest;
 use App\Http\Requests\Rating\UpdateStoreRatingRequest;
-
 use App\Http\Resources\Rating\StoreRatingResource;
 use App\Models\Store;
 use App\Models\StoreRating;
@@ -18,8 +18,7 @@ class StoreRatingController extends Controller
 
     public function __construct(
         private readonly StoreRatingService $storeRatingService
-    ) {
-    }
+    ) {}
 
     /**
      * Display approved ratings for a specific store (public).

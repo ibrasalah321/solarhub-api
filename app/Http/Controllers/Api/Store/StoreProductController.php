@@ -17,8 +17,7 @@ class StoreProductController extends Controller
 
     public function __construct(
         private readonly StoreProductService $storeProductService
-    ) {
-    }
+    ) {}
 
     public function index(Request $request)
     {

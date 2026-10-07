@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers\Api\Payment;
 
 use App\Http\Controllers\Controller;
@@ -6,6 +7,7 @@ use App\Http\Requests\Payment\StoreStorePayoutRequest;
 use App\Http\Requests\Payment\UpdateStorePayoutRequest;
 use App\Http\Resources\Payment\StorePayoutResource;
 use App\Models\StorePayout;
+use App\Services\Notification\DomainNotificationDispatcher;
 use App\Services\Payment\StorePayoutService;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\Request;
@@ -15,9 +17,9 @@ class StorePayoutController extends Controller
     use ApiResponseTrait;
 
     public function __construct(
-        private readonly StorePayoutService $storePayoutService
-    ) {
-    }
+        private readonly StorePayoutService $storePayoutService,
+        private readonly DomainNotificationDispatcher $notifications
+    ) {}
 
     /**
      * Display all payouts, optionally filtered by ?status=pending|completed|failed.
@@ -58,6 +60,12 @@ class StorePayoutController extends Controller
             $request->user(),
             $request->validated()
         );
+        $payout->loadMissing('orderStore.order', 'orderStore.store.user');
+
+        $this->notifications->payoutCreated(
+            $request->user(),
+            $payout
+        );
 
         return $this->successResponse(
             new StorePayoutResource($payout),
@@ -74,6 +82,12 @@ class StorePayoutController extends Controller
         $payout = $request->validated('status') === 'completed'
             ? $this->storePayoutService->markCompleted($storePayout, $request->validated('transfer_reference'))
             : $this->storePayoutService->markFailed($storePayout, $request->validated('transfer_reference'));
+        $payout->loadMissing('orderStore.order', 'orderStore.store.user');
+
+        $this->notifications->payoutStatusChanged(
+            $request->user(),
+            $payout
+        );
 
         return $this->successResponse(
             new StorePayoutResource($payout),

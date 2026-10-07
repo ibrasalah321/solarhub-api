@@ -15,8 +15,7 @@ class StoreController extends Controller
 
     public function __construct(
         private readonly StoreService $storeService
-    ) {
-    }
+    ) {}
 
     public function index()
     {
@@ -24,8 +23,7 @@ class StoreController extends Controller
             ->where('approval_status', 'approved')
             ->withAvg('ratings', 'rating')
             ->withCount([
-                'ratings as approved_ratings_count' =>
-                    fn ($query) => $query->where('is_approved', true),
+                'ratings as approved_ratings_count' => fn ($query) => $query->where('is_approved', true),
             ])
             ->paginate(15);
 
@@ -41,8 +39,7 @@ class StoreController extends Controller
 
         $store->loadAvg('ratings', 'rating')
             ->loadCount([
-                'ratings as approved_ratings_count' =>
-                    fn ($query) => $query->where('is_approved', true),
+                'ratings as approved_ratings_count' => fn ($query) => $query->where('is_approved', true),
             ]);
 
         return $this->successResponse(

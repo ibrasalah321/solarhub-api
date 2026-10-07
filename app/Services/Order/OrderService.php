@@ -195,7 +195,7 @@ class OrderService
     private function generateOrderNumber(): string
     {
         do {
-            $orderNumber = 'ORD-' . now()->format('Ymd') . '-' . strtoupper(Str::random(6));
+            $orderNumber = 'ORD-'.now()->format('Ymd').'-'.strtoupper(Str::random(6));
         } while (Order::query()->where('order_number', $orderNumber)->exists());
 
         return $orderNumber;

@@ -13,8 +13,7 @@ class StoreOnboardingService
 {
     public function __construct(
         private readonly SupabaseStorageService $storageService
-    ) {
-    }
+    ) {}
 
     public function store(User $user, array $data): Store
     {
@@ -38,12 +37,10 @@ class StoreOnboardingService
 
         try {
 
-            if (isset($data['commercial_file'])) {
-                $commercialFilePath = $this->storageService->uploadPrivate(
-                    $data['commercial_file'],
-                    'stores/commercial-documents'
-                );
-            }
+            $commercialFilePath = $this->storageService->uploadPrivate(
+                $data['commercial_file'],
+                'stores/commercial-documents'
+            );
 
             return DB::transaction(function () use (
                 $user,
@@ -52,23 +49,13 @@ class StoreOnboardingService
             ): Store {
                 return Store::query()->create([
                     'user_id' => $user->id,
-
                     'company_name' => $data['company_name'],
-
-                    'commercial_registry' =>
-                        $data['commercial_registry'] ?? null,
-
-                    'commercial_file_path' =>
-                        $commercialFilePath,
-                    'store_type' =>
-                        $data['store_type'],
-                    
+                    'commercial_registry' => $data['commercial_registry'],
+                    'commercial_file_path' => $commercialFilePath,
+                    'store_type' => $data['store_type'],
                     'address_details' => $data['address_details'],
-
                     'approval_status' => 'pending',
-
                     'rejection_reason' => null,
-
                     'approved_at' => null,
                 ]);
             });

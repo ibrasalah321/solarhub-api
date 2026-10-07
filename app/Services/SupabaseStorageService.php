@@ -9,9 +9,11 @@ use Illuminate\Support\Str;
 class SupabaseStorageService
 {
     private string $publicDisk = 'supabase_public';
+
     private string $privateDisk = 'supabase_private';
 
-    public function uploadPublic(UploadedFile $file,string $directory): string {
+    public function uploadPublic(UploadedFile $file, string $directory): string
+    {
         return $this->upload(
             $file,
             $directory,
@@ -19,7 +21,8 @@ class SupabaseStorageService
         );
     }
 
-    public function uploadPrivate(UploadedFile $file,string $directory): string {
+    public function uploadPrivate(UploadedFile $file, string $directory): string
+    {
         return $this->upload(
             $file,
             $directory,
@@ -27,14 +30,15 @@ class SupabaseStorageService
         );
     }
 
-    private function upload(UploadedFile $file,string $directory,string $disk): string {
+    private function upload(UploadedFile $file, string $directory, string $disk): string
+    {
         $fileName = Str::uuid()
-            . '.'
-            . $file->getClientOriginalExtension();
+            .'.'
+            .$file->getClientOriginalExtension();
 
         $path = trim($directory, '/')
-            . '/'
-            . $fileName;
+            .'/'
+            .$fileName;
 
         Storage::disk($disk)->put(
             $path,
@@ -54,8 +58,9 @@ class SupabaseStorageService
         $this->delete($path, $this->privateDisk);
     }
 
-    private function delete(?string $path,string $disk): void {
-        if (!$path) {
+    private function delete(?string $path, string $disk): void
+    {
+        if (! $path) {
             return;
         }
 
@@ -66,7 +71,7 @@ class SupabaseStorageService
 
     public function publicUrl(?string $path): ?string
     {
-        if (!$path) {
+        if (! $path) {
             return null;
         }
 
@@ -74,8 +79,9 @@ class SupabaseStorageService
             ->url($path);
     }
 
-    public function temporaryPrivateUrl(?string $path,int $minutes = 5): ?string {
-        if (!$path) {
+    public function temporaryPrivateUrl(?string $path, int $minutes = 5): ?string
+    {
+        if (! $path) {
             return null;
         }
 
