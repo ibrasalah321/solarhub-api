@@ -1,7 +1,7 @@
 <?php
 
 namespace Database\Seeders;
-
+use App\Models\Favorite;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\EngineerCertificate;
@@ -48,7 +48,7 @@ class DatabaseSeeder extends Seeder
         $customers = $this->seedCustomers();
         $engineers = $this->seedEngineers();
         $stores = $this->seedStores();
-
+        $this->seedFavorites();
         $walletUsers = $customers
             ->concat($stores->map->user)
             ->filter()
@@ -410,4 +410,35 @@ class DatabaseSeeder extends Seeder
             );
         }
     }
+
+    private function seedFavorites(): void
+{
+    $productIds = StoreProduct::query()
+        ->where('status', 'active')
+        ->orderBy('id')
+        ->pluck('id');
+
+    if ($productIds->isEmpty()) {
+        return;
+    }
+
+    $customers = User::role('customer')
+        ->orderBy('id')
+        ->get();
+
+    $count = min(3, $productIds->count());
+
+    foreach ($customers as $index => $customer) {
+        for ($offset = 0; $offset < $count; $offset++) {
+            $productId = $productIds[
+                ($index + $offset) % $productIds->count()
+            ];
+
+            Favorite::firstOrCreate([
+                'user_id' => $customer->id,
+                'store_product_id' => $productId,
+            ]);
+        }
+    }
+}
 }
