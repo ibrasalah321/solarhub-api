@@ -1,15 +1,27 @@
-name: Telegram GitHub Notifications
+
+name: Telegram GitHub Notifications - Backend
 
 on:
   push:
   pull_request:
-    types: [opened, closed, reopened]
+    types: [opened, closed, reopened, synchronize, edited, ready_for_review]
   issues:
-    types: [opened, closed, reopened]
+    types: [opened, closed, reopened, edited, assigned, labeled]
   issue_comment:
     types: [created]
+  pull_request_review:
+    types: [submitted]
   create:
   delete:
+  release:
+    types: [published]
+  fork:
+  watch:
+    types: [started]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   telegram:
@@ -20,87 +32,130 @@ jobs:
         env:
           BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          PROJECT_TYPE: "BACKEND"
           EVENT_NAME: ${{ github.event_name }}
           REPOSITORY: ${{ github.repository }}
           ACTOR: ${{ github.actor }}
           BRANCH: ${{ github.ref_name }}
+          REF: ${{ github.event.ref }}
+          REF_TYPE: ${{ github.event.ref_type }}
+          ACTION: ${{ github.event.action }}
           COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
-          COMMIT_URL: ${{ github.event.head_commit.url }}
+          COMMIT_SHA: ${{ github.event.head_commit.id }}
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_URL: ${{ github.event.pull_request.html_url }}
-          PR_ACTION: ${{ github.event.action }}
+          PR_MERGED: ${{ github.event.pull_request.merged }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
           ISSUE_TITLE: ${{ github.event.issue.title }}
           ISSUE_URL: ${{ github.event.issue.html_url }}
-          COMMENT: ${{ github.event.comment.body }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_URL: ${{ github.event.release.html_url }}
+          REPOSITORY_URL: ${{ github.event.repository.html_url }}
 
         run: |
-          if [ "$EVENT_NAME" = "push" ]; then
-            MESSAGE="📤 <b>GitHub Push</b>
+          set -e
 
-          📦 Repository: $REPOSITORY
-          👤 Developer: $ACTOR
-          🌿 Branch: $BRANCH
-
-          📝 Commit:
-          $COMMIT_MESSAGE
-
-          🔗 $COMMIT_URL"
-
-          elif [ "$EVENT_NAME" = "pull_request" ]; then
-            MESSAGE="🔀 <b>Pull Request</b>
-
-          📦 Repository: $REPOSITORY
-          👤 Developer: $ACTOR
-          ⚡ Action: $PR_ACTION
-
-          📝 $PR_TITLE
-
-          🔗 $PR_URL"
-
-          elif [ "$EVENT_NAME" = "issues" ]; then
-            MESSAGE="🐛 <b>Issue</b>
-
-          📦 Repository: $REPOSITORY
-          👤 User: $ACTOR
-          ⚡ Action: $PR_ACTION
-
-          📝 $ISSUE_TITLE
-
-          🔗 $ISSUE_URL"
-
-          elif [ "$EVENT_NAME" = "issue_comment" ]; then
-            MESSAGE="💬 <b>GitHub Comment</b>
-
-          📦 Repository: $REPOSITORY
-          👤 User: $ACTOR
-
-          💭 $COMMENT"
-
-          elif [ "$EVENT_NAME" = "create" ]; then
-            MESSAGE="🌿 <b>GitHub Created</b>
-
-          📦 Repository: $REPOSITORY
-          👤 User: $ACTOR
-          🌿 Ref: $BRANCH"
-
-          elif [ "$EVENT_NAME" = "delete" ]; then
-            MESSAGE="🗑️ <b>GitHub Deleted</b>
-
-          📦 Repository: $REPOSITORY
-          👤 User: $ACTOR
-          🌿 Ref: $BRANCH"
-
-          else
-            MESSAGE="🤖 GitHub Event
-
-          📦 $REPOSITORY
-          👤 $ACTOR
-          ⚡ $EVENT_NAME"
-
+          if [ -z "$BOT_TOKEN" ] || [ -z "$CHAT_ID" ]; then
+            echo "Missing TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID secret"
+            exit 1
           fi
 
-          curl -s -X POST \
+          MESSAGE="🔔 GitHub Notification
+
+          🏷️ Project: $PROJECT_TYPE
+          📦 Repository: $REPOSITORY
+          👤 Developer: $ACTOR
+          ⚡ Event: $EVENT_NAME
+          📝 Action: ${ACTION:-none}"
+
+          case "$EVENT_NAME" in
+            push)
+              MESSAGE="$MESSAGE
+
+          📤 Code pushed
+          🌿 Branch: $BRANCH
+          📝 Commit: ${COMMIT_MESSAGE:-No message}
+          🔗 https://github.com/$REPOSITORY/commit/$COMMIT_SHA"
+              ;;
+
+            pull_request)
+              MESSAGE="$MESSAGE
+
+          🔀 Pull Request #$PR_NUMBER
+          📝 ${PR_TITLE:-No title}
+          🔗 $PR_URL"
+
+              if [ "$ACTION" = "closed" ] && [ "$PR_MERGED" = "true" ]; then
+                MESSAGE="$MESSAGE
+
+          ✅ Pull Request MERGED"
+              elif [ "$ACTION" = "closed" ]; then
+                MESSAGE="$MESSAGE
+
+          ❌ Pull Request closed without merge"
+              fi
+              ;;
+
+            create|delete)
+              MESSAGE="$MESSAGE
+
+          🌿 Ref: ${REF:-unknown}
+          🏷️ Type: ${REF_TYPE:-unknown}
+          ⚡ Operation: $EVENT_NAME"
+              ;;
+
+            issues)
+              MESSAGE="$MESSAGE
+
+          🐛 Issue #$ISSUE_NUMBER
+          📝 ${ISSUE_TITLE:-No title}
+          🔗 $ISSUE_URL"
+              ;;
+
+            issue_comment)
+              MESSAGE="$MESSAGE
+
+          💬 New issue or PR comment
+          🔗 $REPOSITORY_URL"
+              ;;
+
+            pull_request_review)
+              MESSAGE="$MESSAGE
+
+          👀 Pull Request review
+          🔗 ${PR_URL:-$REPOSITORY_URL}"
+              ;;
+
+            release)
+              MESSAGE="$MESSAGE
+
+          🚀 Release: ${RELEASE_TAG:-unknown}
+          🔗 ${RELEASE_URL:-$REPOSITORY_URL}"
+              ;;
+
+            fork)
+              MESSAGE="$MESSAGE
+
+          🍴 Repository forked"
+              ;;
+
+            watch)
+              MESSAGE="$MESSAGE
+
+          ⭐ Repository starred"
+              ;;
+
+            workflow_dispatch)
+              MESSAGE="$MESSAGE
+
+          🧪 Manual notification test"
+              ;;
+          esac
+
+          curl --fail-with-body --silent --show-error \
+            --retry 2 \
+            -X POST \
             "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
-            -d "chat_id=${CHAT_ID}" \
-            -d "parse_mode=HTML" \
+            --data-urlencode "chat_id=${CHAT_ID}" \
             --data-urlencode "text=${MESSAGE}"
