@@ -22,7 +22,7 @@ class BrandController extends Controller
     {
         $brands = Brand::query()
             ->withCount('masterProducts')
-            ->where('is_active', true)
+            ->where('is_active', '!=', null)
             ->orderBy('name')
             ->get();
 
