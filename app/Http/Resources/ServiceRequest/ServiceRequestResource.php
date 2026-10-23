@@ -45,6 +45,20 @@ class ServiceRequestResource extends JsonResource
 
             'status' => $this->status,
 
+            'offers' => $this->whenLoaded('offers', function () {
+                return $this->offers->map(function ($offer) {
+                    return [
+                        'id' => $offer->id,
+                        'engineer_id' => $offer->engineer_id,
+                        'proposed_cost' => $offer->proposed_cost,
+                        'execution_time_days' => $offer->execution_time_days,
+                        'technical_proposal' => $offer->technical_proposal,
+                        'proposal_file' => $offer->proposal_file,
+                        'status' => $offer->status,
+                    ];
+                });
+            }),
+
             'created_at' => $this->created_at,
         ];
     }

@@ -1,7 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\Notification\NotificationController;
-use App\Http\Controllers\Api\Notifcication\NotificationTemplateController;
+use App\Http\Controllers\Api\Notification\NotificationTemplateController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->group(function () {

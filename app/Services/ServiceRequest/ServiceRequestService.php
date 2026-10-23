@@ -52,6 +52,7 @@ class ServiceRequestService
             ->paginate($filters['per_page'] ?? (int) request()->input('per_page', 100));
     }
 
+
     public function getOpenRequests(array $filters = [])
     {
         return ServiceRequest::query()
@@ -70,6 +71,29 @@ class ServiceRequestService
             ->latest()
             ->paginate($filters['per_page'] ?? (int) request()->input('per_page', 100));
     }
+
+    public function getAllRequests(array $filters = [])
+    {
+        return ServiceRequest::query()
+            ->with([
+                'customer',
+                'serviceType',
+                'governorate',
+                'offers',
+            ])
+            ->when($filters['status'] ?? null, function ($query, $status) {
+                $query->where('status', $status);
+            })
+            ->when($filters['service_type_id'] ?? null, function ($query, $serviceTypeId) {
+                $query->where('service_type_id', $serviceTypeId);
+            })
+            ->when($filters['governorate_id'] ?? null, function ($query, $governorateId) {
+                $query->where('governorate_id', $governorateId);
+            })
+            ->latest()
+            ->paginate($filters['per_page'] ?? (int) request()->input('per_page', 100));
+    }
+
 
     public function findRequest(int $id): ServiceRequest
     {

@@ -21,6 +21,19 @@ class ServiceRequestController extends Controller
         private readonly DomainNotificationDispatcher $notifications
     ) {}
 
+    public function index(ServiceRequestIndexRequest $request)
+    {
+        $serviceRequests =
+            $this->serviceRequestService->getAllRequests(
+                $request->validated()
+            );
+
+        return $this->successResponse(
+            ServiceRequestResource::collection($serviceRequests),
+            'Service requests retrieved successfully.'
+        );
+    }
+
     public function myRequests(ServiceRequestIndexRequest $request)
     {
         $serviceRequests =

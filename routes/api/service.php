@@ -8,6 +8,12 @@ use Illuminate\Support\Facades\Route;
 Route::get('/service-types', [ServiceTypeController::class, 'index']);
 
 Route::middleware('auth:sanctum')->group(function () {
+    // عرض كافة طلبات الخدمات للإدارة والمنصة
+    Route::get('/service-requests', [
+        ServiceRequestController::class,
+        'index',
+    ]);
+
     // طلبات العميل.
     Route::get('/my/service-requests', [
         ServiceRequestController::class,
