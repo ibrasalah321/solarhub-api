@@ -38,7 +38,8 @@ class StoreController extends Controller
     {
         abort_unless($store->approval_status === 'approved', 404);
 
-        $store->loadAvg('ratings', 'rating')
+        $store->load('user.governorate')
+            ->loadAvg('ratings', 'rating')
             ->loadCount([
                 'ratings as approved_ratings_count' => fn ($query) => $query->where('is_approved', true),
             ]);
