@@ -141,4 +141,16 @@ Route::middleware('auth:sanctum')
                 ],
             ]);
         });
+
+        // 5. إدارة تقييمات المتاجر والموردين
+        Route::get('/reviews/stores', [\App\Http\Controllers\Api\Rating\StoreRatingController::class, 'index']);
+        Route::patch('/reviews/stores/{storeRating}/toggle-approval', [\App\Http\Controllers\Api\Rating\StoreRatingController::class, 'toggleApproval']);
+
+        // 6. إدارة تقييمات المهندسين
+        Route::get('/reviews/engineers', [\App\Http\Controllers\Api\Rating\EngineerRatingController::class, 'index']);
+        Route::patch('/reviews/engineers/{rating}/toggle-approval', [\App\Http\Controllers\Api\Rating\EngineerRatingController::class, 'toggleApproval']);
+
+        // 7. إدارة الإشعارات والبث العام
+        Route::get('/notifications', [\App\Http\Controllers\Api\Notification\AdminNotificationController::class, 'index']);
+        Route::post('/notifications/broadcast', [\App\Http\Controllers\Api\Notification\AdminNotificationController::class, 'broadcast']);
     });

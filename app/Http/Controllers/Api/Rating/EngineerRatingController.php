@@ -21,6 +21,37 @@ class EngineerRatingController extends Controller
         private readonly EngineerRatingService $ratingService
     ) {}
 
+    /**
+     * Display all engineer ratings for administration.
+     */
+    public function index(Request $request)
+    {
+        $ratings = EngineerRating::query()
+            ->with(['customer', 'engineer.user'])
+            ->latest()
+            ->paginate((int) $request->input('per_page', 100));
+
+        return $this->successResponse(
+            EngineerRatingResource::collection($ratings),
+            'Engineer ratings retrieved successfully.'
+        );
+    }
+
+    /**
+     * Toggle approval status of an engineer rating.
+     */
+    public function toggleApproval(EngineerRating $rating)
+    {
+        $rating->update([
+            'is_approved' => ! $rating->is_approved,
+        ]);
+
+        return $this->successResponse(
+            new EngineerRatingResource($rating->load(['customer', 'engineer.user'])),
+            'Rating approval status toggled successfully.'
+        );
+    }
+
     public function store(StoreEngineerRatingRequest $request, ServiceRequest $serviceRequest)
     {
         $rating = $this->ratingService->create(
