@@ -11,6 +11,7 @@ class GovernorateResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'name' => $this->name_ar ?? $this->name_en ?? '',
             'name_ar' => $this->name_ar,
             'name_en' => $this->name_en,
             'is_active' => $this->is_active,

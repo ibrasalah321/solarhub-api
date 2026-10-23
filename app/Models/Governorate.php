@@ -27,6 +27,11 @@ class Governorate extends Model
         ];
     }
 
+    public function getNameAttribute(): ?string
+    {
+        return $this->name_ar ?? $this->name_en;
+    }
+
     public function users(): HasMany
     {
         return $this->hasMany(User::class, 'governorate_id');

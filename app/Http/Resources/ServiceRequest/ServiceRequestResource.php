@@ -29,7 +29,9 @@ class ServiceRequestResource extends JsonResource
             'governorate' => $this->whenLoaded('governorate', function () {
                 return [
                     'id' => $this->governorate->id,
-                    'name' => $this->governorate->name,
+                    'name' => $this->governorate->name_ar ?? $this->governorate->name_en ?? '',
+                    'name_ar' => $this->governorate->name_ar,
+                    'name_en' => $this->governorate->name_en,
                 ];
             }),
 
