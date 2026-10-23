@@ -21,6 +21,8 @@ class MasterProductController extends Controller
 
     public function index(Request $request)
     {
+        $perPage = (int) $request->input('per_page', 20);
+
         $products = MasterProduct::query()
             ->with(['category', 'brand', 'images'])
             ->withCount('storeProducts')
@@ -28,12 +30,19 @@ class MasterProductController extends Controller
             ->when($request->query('category_id'), fn ($q, $categoryId) => $q->where('category_id', $categoryId))
             ->when($request->query('brand_id'), fn ($q, $brandId) => $q->where('brand_id', $brandId))
             ->when($request->query('search'), fn ($q, $search) => $q->where('title', 'like', "%{$search}%"))
-            ->paginate((int) $request->input('per_page', 100));
+            ->paginate($perPage);
 
-        return $this->successResponse(
-            MasterProductResource::collection($products),
-            'Products retrieved successfully.'
-        );
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Products retrieved successfully.',
+            'data' => MasterProductResource::collection($products),
+            'meta' => [
+                'current_page' => $products->currentPage(),
+                'last_page' => $products->lastPage(),
+                'per_page' => $products->perPage(),
+                'total' => $products->total(),
+            ],
+        ]);
     }
 
     public function show(MasterProduct $masterProduct)
