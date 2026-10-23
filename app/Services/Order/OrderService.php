@@ -20,7 +20,7 @@ class OrderService
             ->where('customer_id', $customer->id)
             ->with(['governorate'])
             ->latest()
-            ->paginate(15);
+            ->paginate((int) request()->input('per_page', 100));
     }
 
     /**

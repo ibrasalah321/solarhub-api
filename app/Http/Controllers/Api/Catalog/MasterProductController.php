@@ -28,7 +28,7 @@ class MasterProductController extends Controller
             ->when($request->query('category_id'), fn ($q, $categoryId) => $q->where('category_id', $categoryId))
             ->when($request->query('brand_id'), fn ($q, $brandId) => $q->where('brand_id', $brandId))
             ->when($request->query('search'), fn ($q, $search) => $q->where('title', 'like', "%{$search}%"))
-            ->paginate(20);
+            ->paginate((int) $request->input('per_page', 100));
 
         return $this->successResponse(
             MasterProductResource::collection($products),

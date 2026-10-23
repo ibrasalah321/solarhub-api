@@ -49,7 +49,7 @@ class ServiceRequestService
                 $query->where('status', $status);
             })
             ->latest()
-            ->paginate($filters['per_page'] ?? 10);
+            ->paginate($filters['per_page'] ?? (int) request()->input('per_page', 100));
     }
 
     public function getOpenRequests(array $filters = [])
@@ -68,7 +68,7 @@ class ServiceRequestService
                 $query->where('governorate_id', $governorateId);
             })
             ->latest()
-            ->paginate($filters['per_page'] ?? 10);
+            ->paginate($filters['per_page'] ?? (int) request()->input('per_page', 100));
     }
 
     public function findRequest(int $id): ServiceRequest

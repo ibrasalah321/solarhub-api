@@ -25,7 +25,7 @@ class StoreController extends Controller
             ->withCount([
                 'ratings as approved_ratings_count' => fn ($query) => $query->where('is_approved', true),
             ])
-            ->paginate(15);
+            ->paginate((int) request()->input('per_page', 100));
 
         return $this->successResponse(
             StoreResource::collection($stores),

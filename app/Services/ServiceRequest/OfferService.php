@@ -70,7 +70,7 @@ class OfferService
                 'serviceRequest.governorate',
             ])
             ->latest()
-            ->paginate(10);
+            ->paginate((int) request()->input('per_page', 100));
     }
 
     public function update(EngineerProfile $engineer, Offer $offer, array $data): Offer

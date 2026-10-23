@@ -23,7 +23,7 @@ class StorePayoutService
             ->with(['orderStore.store', 'userWallet.walletProvider'])
             ->when($status, fn (Builder $query) => $query->where('status', $status))
             ->latest()
-            ->paginate(15);
+            ->paginate((int) request()->input('per_page', 100));
     }
 
     /**

@@ -115,6 +115,6 @@ class EngineerRatingService
             ->where('is_approved', true)
             ->with('customer')
             ->latest()
-            ->paginate(10);
+            ->paginate((int) request()->input('per_page', 100));
     }
 }

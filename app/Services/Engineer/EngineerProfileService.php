@@ -70,7 +70,7 @@ class EngineerProfileService
                 }
             )
             ->latest()
-            ->paginate($filters['per_page'] ?? 10);
+            ->paginate($filters['per_page'] ?? (int) request()->input('per_page', 100));
     }
 
     /**

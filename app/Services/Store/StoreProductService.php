@@ -41,7 +41,7 @@ class StoreProductService
                 $filters['store_id'] ?? null,
                 fn (Builder $query, $id) => $query->where('store_id', $id)
             )
-            ->paginate(20);
+            ->paginate($filters['per_page'] ?? (int) request()->input('per_page', 100));
     }
 
     /**
@@ -56,7 +56,7 @@ class StoreProductService
         return $store->storeProducts()
             ->with(['masterProduct', 'governorate'])
             ->latest()
-            ->paginate(20);
+            ->paginate((int) request()->input('per_page', 100));
     }
 
     /**
