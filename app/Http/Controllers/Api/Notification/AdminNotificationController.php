@@ -28,14 +28,16 @@ class AdminNotificationController extends Controller
             ->select('notifications.*')
             ->selectSub(
                 Notification::query()
+                    ->from('notifications as sub_total')
                     ->selectRaw('COUNT(*)')
-                    ->whereColumn('event_id', 'notifications.event_id'),
+                    ->whereColumn('sub_total.event_id', 'notifications.event_id'),
                 'total_recipients'
             )
             ->selectSub(
                 Notification::query()
+                    ->from('notifications as sub_read')
                     ->selectRaw('COUNT(read_at)')
-                    ->whereColumn('event_id', 'notifications.event_id'),
+                    ->whereColumn('sub_read.event_id', 'notifications.event_id'),
                 'read_recipients'
             )
             ->latest('created_at')
@@ -62,11 +64,20 @@ class AdminNotificationController extends Controller
                 }
             }
 
+            $targetUser = $data['target_user'] ?? null;
+            if (!$targetUser && $audience === 'specific' && $notification->notifiable) {
+                $targetUser = [
+                    'id' => $notification->notifiable->id,
+                    'name' => $notification->notifiable->name,
+                ];
+            }
+
             return [
                 'id' => $notification->event_id ?: $notification->id,
                 'title' => $data['title'] ?? 'إشعار من النظام',
                 'content' => $data['body'] ?? $data['content'] ?? '',
                 'audience' => $audience,
+                'target_user' => $targetUser,
                 'read_percentage' => $total > 0 ? (int) round(($read / $total) * 100) : null,
                 'total_recipients' => $total,
                 'read_recipients' => $read,
@@ -78,37 +89,50 @@ class AdminNotificationController extends Controller
     }
 
     /**
-     * Broadcast a notification to targeted platform users.
+     * Broadcast a notification to targeted platform users or a specific user.
      */
     public function broadcast(Request $request)
     {
         $validated = $request->validate([
             'title' => ['required', 'string', 'min:3', 'max:150'],
             'content' => ['required', 'string', 'min:10', 'max:2000'],
-            'audience' => ['required', 'string', 'in:all,customers,suppliers,engineers'],
+            'audience' => ['required', 'string', 'in:all,customers,suppliers,engineers,specific'],
+            'user_id' => ['required_if:audience,specific', 'nullable', 'integer', 'exists:users,id'],
         ]);
 
-        $query = User::query()->where('is_active', true);
-        if ($validated['audience'] === 'customers') {
-            $query->role('customer');
-        } elseif ($validated['audience'] === 'suppliers') {
-            $query->role('supplier');
-        } elseif ($validated['audience'] === 'engineers') {
-            $query->role('engineer');
-        }
+        $targetUser = null;
 
-        $recipients = $query->get();
-
-        if ($recipients->isEmpty()) {
-            $fallbackQuery = User::query();
+        if ($validated['audience'] === 'specific') {
+            $user = User::findOrFail($validated['user_id']);
+            $recipients = collect([$user]);
+            $targetUser = [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+            ];
+        } else {
+            $query = User::query()->where('is_active', true);
             if ($validated['audience'] === 'customers') {
-                $fallbackQuery->role('customer');
+                $query->role('customer');
             } elseif ($validated['audience'] === 'suppliers') {
-                $fallbackQuery->role('supplier');
+                $query->role('supplier');
             } elseif ($validated['audience'] === 'engineers') {
-                $fallbackQuery->role('engineer');
+                $query->role('engineer');
             }
-            $recipients = $fallbackQuery->get();
+
+            $recipients = $query->get();
+
+            if ($recipients->isEmpty()) {
+                $fallbackQuery = User::query();
+                if ($validated['audience'] === 'customers') {
+                    $fallbackQuery->role('customer');
+                } elseif ($validated['audience'] === 'suppliers') {
+                    $fallbackQuery->role('supplier');
+                } elseif ($validated['audience'] === 'engineers') {
+                    $fallbackQuery->role('engineer');
+                }
+                $recipients = $fallbackQuery->get();
+            }
         }
 
         $eventId = (string) Str::uuid();
@@ -129,6 +153,7 @@ class AdminNotificationController extends Controller
                     'title' => $validated['title'],
                     'body' => $validated['content'],
                     'audience' => $validated['audience'],
+                    'target_user' => $targetUser,
                     'action_url' => null,
                 ],
                 'read_at' => null,
@@ -140,9 +165,10 @@ class AdminNotificationController extends Controller
             'title' => $validated['title'],
             'content' => $validated['content'],
             'audience' => $validated['audience'],
+            'target_user' => $targetUser,
             'read_percentage' => 0,
             'created_at' => now()->toISOString(),
             'recipients_count' => $recipients->count(),
-        ], 'تم إرسال الإشعار العام بنجاح.');
+        ], 'تم إرسال الإشعار بنجاح.');
     }
 }
