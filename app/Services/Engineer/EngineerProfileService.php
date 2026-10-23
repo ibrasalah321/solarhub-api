@@ -18,7 +18,7 @@ class EngineerProfileService
     {
         return EngineerProfile::query()
             ->with([
-                'user',
+                'user.governorate',
                 'specializations',
             ])
             ->withAvg(

@@ -11,7 +11,7 @@ class AdminApprovalService
     public function pendingEngineers()
     {
         return EngineerProfile::query()
-            ->with('user')
+            ->with(['user.governorate', 'specializations'])
             ->where('approval_status', 'pending')
             ->paginate(15);
     }
@@ -60,7 +60,7 @@ class AdminApprovalService
     public function pendingStores()
     {
         return Store::query()
-            ->with('user')
+            ->with('user.governorate')
             ->where('approval_status', 'pending')
             ->paginate(15);
     }

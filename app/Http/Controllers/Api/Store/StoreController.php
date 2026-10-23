@@ -21,6 +21,7 @@ class StoreController extends Controller
     {
         $stores = Store::query()
             ->where('approval_status', 'approved')
+            ->with('user.governorate')
             ->withAvg('ratings', 'rating')
             ->withCount([
                 'ratings as approved_ratings_count' => fn ($query) => $query->where('is_approved', true),
