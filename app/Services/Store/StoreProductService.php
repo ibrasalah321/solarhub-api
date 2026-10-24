@@ -19,6 +19,7 @@ class StoreProductService
             ->with([
                 'masterProduct.brand',
                 'masterProduct.category',
+                'masterProduct.images',
                 'store',
                 'governorate',
             ])
