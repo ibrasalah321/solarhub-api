@@ -72,7 +72,7 @@ class MasterProductController extends Controller
         $product = MasterProduct::create($data);
 
         return $this->successResponse(
-            new MasterProductResource($product->load(['category', 'brand'])),
+            new MasterProductResource($product->load(['category', 'brand', 'specifications', 'images'])),
             'Product created successfully.',
             201
         );
@@ -95,7 +95,7 @@ class MasterProductController extends Controller
         $masterProduct->update($data);
 
         return $this->successResponse(
-            new MasterProductResource($masterProduct->load(['category', 'brand'])),
+            new MasterProductResource($masterProduct->load(['category', 'brand', 'specifications', 'images'])),
             'Product updated successfully.'
         );
     }
