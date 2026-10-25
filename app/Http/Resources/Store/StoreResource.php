@@ -29,7 +29,7 @@ class StoreResource extends JsonResource
             'store_type' => $this->store_type,
             'approval_status' => $this->approval_status,
             'address_details' => $this->address_details,
-            'location_coordinates' => $this->location_coordinates,
+            'location_coordinates' => $this->location_coordinates ?? $this->user?->default_coordinates,
 
             'average_rating' => round((float) ($this->ratings_avg_rating ?? 0), 1),
             'ratings_count' => (int) ($this->approved_ratings_count ?? 0),
