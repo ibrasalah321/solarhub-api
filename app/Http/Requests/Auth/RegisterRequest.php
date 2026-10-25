@@ -82,6 +82,11 @@ class RegisterRequest extends FormRequest
                     'engineer',
                 ]),
             ],
+
+            'governorate_id' => ['nullable', 'integer', 'exists:governorates,id'],
+            'governorate' => ['nullable', 'string', 'max:100'],
+            'default_coordinates' => ['nullable', 'string', 'max:255'],
+            'location_coordinates' => ['nullable', 'string', 'max:255'],
         ];
     }
 

@@ -17,18 +17,16 @@ class StoreController extends Controller
         private readonly StoreService $storeService
     ) {}
 
-    public function index(\Illuminate\Http\Request $request)
+    public function index()
     {
-        $status = $request->input('approval_status', $request->input('status'));
-
         $stores = Store::query()
-            ->when($status, fn ($query) => $query->where('approval_status', $status))
+            ->where('approval_status', 'approved')
             ->with('user.governorate')
             ->withAvg('ratings', 'rating')
             ->withCount([
                 'ratings as approved_ratings_count' => fn ($query) => $query->where('is_approved', true),
             ])
-            ->paginate((int) $request->input('per_page', 100));
+            ->paginate((int) request()->input('per_page', 100));
 
         return $this->successResponse(
             StoreResource::collection($stores),
@@ -38,6 +36,8 @@ class StoreController extends Controller
 
     public function show(Store $store)
     {
+        abort_unless($store->approval_status === 'approved', 404);
+
         $store->load('user.governorate')
             ->loadAvg('ratings', 'rating')
             ->loadCount([

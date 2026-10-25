@@ -22,15 +22,21 @@ class RegistrationController extends Controller
 
     public function registerForRole(RoleRegisterRequest $request): JsonResponse
     {
+        @set_time_limit(180);
+
         $user = $this->registrationService->registerForRole(
             $request->validated(),
             $request->route('accountRole')
         );
 
-        $this->notifications->accountCreated(
-            $user,
-            $request->route('accountRole')
-        );
+        try {
+            $this->notifications->accountCreated(
+                $user,
+                $request->route('accountRole')
+            );
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Registration notification dispatch skipped or failed: ' . $e->getMessage());
+        }
 
         return $this->successResponse(
             new UserResource($user),
@@ -42,10 +48,16 @@ class RegistrationController extends Controller
     public function register(
         RegisterRequest $request
     ): JsonResponse {
+        @set_time_limit(180);
+
         $data = $request->validated();
         $user = $this->registrationService->register($data);
 
-        $this->notifications->accountCreated($user, $data['role']);
+        try {
+            $this->notifications->accountCreated($user, $data['role']);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Registration notification dispatch skipped or failed: ' . $e->getMessage());
+        }
 
         return $this->successResponse(
             new UserResource($user),
