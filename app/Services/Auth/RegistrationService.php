@@ -3,6 +3,7 @@
 namespace App\Services\Auth;
 
 use App\Models\EngineerProfile;
+use App\Models\Governorate;
 use App\Models\Store;
 use App\Models\User;
 use App\Services\SupabaseStorageService;
@@ -37,14 +38,14 @@ class RegistrationService
 
         $uploadedPath = null;
 
-        if ($role === 'engineer') {
+        if ($role === 'engineer' && isset($data['cv'])) {
             $uploadedPath = $this->storageService->uploadPrivate(
                 $data['cv'],
                 'engineers/cvs'
             );
         }
 
-        if ($role === 'supplier') {
+        if ($role === 'supplier' && isset($data['commercial_file'])) {
             $uploadedPath = $this->storageService->uploadPrivate(
                 $data['commercial_file'],
                 'stores/commercial-documents'
@@ -84,12 +85,25 @@ class RegistrationService
             $uploadedPath,
             $createApplication
         ): array {
+            $coords = $data['default_coordinates'] ?? $data['location_coordinates'] ?? null;
+
+            $governorateId = $data['governorate_id'] ?? null;
+            if (! $governorateId && ! empty($data['governorate'])) {
+                $govName = trim($data['governorate']);
+                $governorateId = Governorate::query()
+                    ->where('name_ar', 'like', "%{$govName}%")
+                    ->orWhere('name_en', 'like', "%{$govName}%")
+                    ->value('id');
+            }
+
             $user = User::query()->create([
+                'governorate_id' => $governorateId,
                 'name' => $data['name'],
                 'email' => $data['email'],
                 'phone' => $data['phone'],
                 'password' => Hash::make($data['password']),
                 'status' => 'active',
+                'default_coordinates' => $coords,
             ]);
 
             $user->assignRole($role);
@@ -116,6 +130,7 @@ class RegistrationService
                     'approval_status' => 'pending',
                     'rejection_reason' => null,
                     'approved_at' => null,
+                    'location_coordinates' => $coords,
                 ]);
             }
 

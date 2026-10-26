@@ -19,6 +19,9 @@ class RoleRegisterRequest extends FormRequest
             'name',
             'email',
             'phone',
+            'governorate',
+            'default_coordinates',
+            'location_coordinates',
             'license_number',
             'company_name',
             'commercial_registry',
@@ -67,6 +70,13 @@ class RoleRegisterRequest extends FormRequest
             ],
             'password_confirmation' => ['required', 'string'],
             'role' => ['prohibited'],
+
+            // Common geographical and address fields
+            'governorate_id' => ['nullable', 'integer', 'exists:governorates,id'],
+            'governorate' => ['nullable', 'string', 'max:100'],
+            'default_coordinates' => ['nullable', 'string', 'max:255'],
+            'location_coordinates' => ['nullable', 'string', 'max:255'],
+            'address_details' => ['nullable', 'string', 'max:500'],
         ];
 
         if ($this->route('accountRole') === 'engineer') {
@@ -75,8 +85,8 @@ class RoleRegisterRequest extends FormRequest
                 'cv' => [
                     'required',
                     'file',
-                    'mimes:pdf,doc,docx',
-                    'max:5120',
+                    'mimes:pdf',
+                    'max:10240',
                 ],
             ];
         }
@@ -92,10 +102,10 @@ class RoleRegisterRequest extends FormRequest
                 'commercial_file' => [
                     'required',
                     'file',
-                    'mimes:pdf,jpg,jpeg,png',
-                    'max:5120',
+                    'mimes:pdf,jpg,jpeg,png,webp',
+                    'max:10240',
                 ],
-                'address_details' => ['required', 'string'],
+                'address_details' => ['required', 'string', 'max:500'],
                 'store_type' => [
                     'required',
                     'string',
@@ -116,6 +126,12 @@ class RoleRegisterRequest extends FormRequest
         return [
             'phone.regex' => 'The phone number must contain between 7 and 20 digits.',
             'role.prohibited' => 'The account role is fixed by the registration endpoint.',
+            'cv.required' => 'يرجى إرفاق ملف السيرة الذاتية بصيغة PDF.',
+            'cv.mimes' => 'يجب أن يكون ملف السيرة الذاتية للمهندس بصيغة PDF فقط.',
+            'cv.max' => 'حجم ملف السيرة الذاتية يجب ألا يتجاوز 10 ميجابايت.',
+            'commercial_file.required' => 'يرجى رفع ملف أو صورة السجل التجاري.',
+            'commercial_file.mimes' => 'يجب أن يكون ملف السجل التجاري بصيغة PDF أو صورة (JPG, PNG, WEBP).',
+            'commercial_file.max' => 'حجم ملف السجل التجاري يجب ألا يتجاوز 10 ميجابايت.',
         ];
     }
 }
