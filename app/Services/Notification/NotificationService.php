@@ -39,7 +39,7 @@ class NotificationService
         int $perPage = 20
     ): LengthAwarePaginator {
         $representativeIds = Notification::query()
-            ->selectRaw('MIN(id)')
+           ->selectRaw('MIN(id::text)::uuid')
             ->where('sender_id', $user->id)
             ->when($type, fn ($query) => $query->where('type', $type))
             ->groupBy('event_id');
@@ -49,12 +49,15 @@ class NotificationService
             ->whereIn('id', $representativeIds)
             ->when($type, fn ($query) => $query->where('type', $type))
             ->select('notifications.*')
-            ->selectSub(
-                Notification::query()
-                    ->selectRaw('COUNT(*)')
-                    ->whereColumn('event_id', 'notifications.event_id'),
-                'recipient_count'
-            )
+           ->selectSub(
+    DB::table('notifications as recipients')
+        ->selectRaw('COUNT(*)')
+        ->whereColumn(
+            'recipients.event_id',
+            'notifications.event_id'
+        ),
+    'recipient_count'
+)
             ->with('sender:id,name')
             ->latest()
             ->paginate(min(max($perPage, 1), 100));
