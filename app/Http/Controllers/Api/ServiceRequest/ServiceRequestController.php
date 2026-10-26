@@ -61,6 +61,21 @@ class ServiceRequestController extends Controller
         );
     }
 
+    public function show(ServiceRequest $serviceRequest)
+    {
+        $serviceRequest->load([
+            'customer',
+            'serviceType',
+            'governorate',
+            'offers.engineer.user',
+        ]);
+
+        return $this->successResponse(
+            new ServiceRequestResource($serviceRequest),
+            'Service request retrieved successfully.'
+        );
+    }
+
     public function store(StoreServiceRequestRequest $request)
     {
         $serviceRequest =

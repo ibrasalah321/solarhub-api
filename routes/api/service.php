@@ -20,6 +20,11 @@ Route::middleware('auth:sanctum')->group(function () {
         'myRequests',
     ])->middleware('role:customer');
 
+    Route::get('/service-requests/{serviceRequest}', [
+        ServiceRequestController::class,
+        'show',
+    ])->middleware('can:view,serviceRequest');
+
     Route::post('/service-requests', [
     ServiceRequestController::class,
     'store',
