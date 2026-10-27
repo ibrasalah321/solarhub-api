@@ -32,7 +32,13 @@ class OrderStoreService
         abort_unless($store, 404, 'Store profile not found.');
 
         return $store->orderStores()
-            ->with(['order.customer', 'items.storeProduct.masterProduct'])
+            ->with([
+                'order.customer',
+                'order.governorate',
+                'items.storeProduct.masterProduct.images',
+                'items.storeProduct.masterProduct.brand',
+                'items.storeProduct.masterProduct.category',
+            ])
             ->when($status, fn ($query) => $query->where('status', $status))
             ->latest()
             ->get();
@@ -68,7 +74,13 @@ class OrderStoreService
                 'delivered_at' => $newStatus === 'delivered' ? now() : $orderStore->delivered_at,
             ]);
 
-            return $orderStore->load(['order.customer', 'items.storeProduct.masterProduct']);
+            return $orderStore->load([
+                'order.customer',
+                'order.governorate',
+                'items.storeProduct.masterProduct.images',
+                'items.storeProduct.masterProduct.brand',
+                'items.storeProduct.masterProduct.category',
+            ]);
         });
     }
 

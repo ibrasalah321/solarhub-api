@@ -44,7 +44,13 @@ class OrderStoreController extends Controller
     {
         return $this->successResponse(
             new OrderStoreResource(
-                $orderStore->load(['order.customer', 'items.storeProduct.masterProduct', 'payout'])
+                $orderStore->load([
+                    'order.customer',
+                    'order.governorate',
+                    'items.storeProduct.masterProduct.images',
+                    'items.storeProduct.masterProduct.brand',
+                    'payout',
+                ])
             ),
             'Store order retrieved successfully.'
         );
