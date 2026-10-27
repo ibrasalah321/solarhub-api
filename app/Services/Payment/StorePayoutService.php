@@ -20,10 +20,61 @@ class StorePayoutService
     public function list(?string $status = null): LengthAwarePaginator
     {
         return StorePayout::query()
-            ->with(['orderStore.store', 'userWallet.walletProvider'])
+            ->with(['orderStore.order', 'orderStore.store', 'userWallet.walletProvider'])
             ->when($status, fn (Builder $query) => $query->where('status', $status))
             ->latest()
             ->paginate((int) request()->input('per_page', 100));
+    }
+
+    /**
+     * List payouts for a specific store owner.
+     */
+    public function getMyStorePayouts(User $storeOwner, ?string $status = null): \Illuminate\Database\Eloquent\Collection
+    {
+        $store = $storeOwner->store;
+        if (!$store) {
+            return new \Illuminate\Database\Eloquent\Collection();
+        }
+
+        return StorePayout::query()
+            ->whereHas('orderStore', fn (Builder $q) => $q->where('store_id', $store->id))
+            ->when($status, fn (Builder $q) => $q->where('status', $status))
+            ->with(['orderStore.order', 'orderStore.store', 'userWallet.walletProvider'])
+            ->latest()
+            ->get();
+    }
+
+    /**
+     * Calculate financial summary for a store owner.
+     */
+    public function getFinancialSummary(User $storeOwner): array
+    {
+        $store = $storeOwner->store;
+        if (!$store) {
+            return [
+                'total_settled' => 0.0,
+                'total_pending' => 0.0,
+                'total_commissions' => 0.0,
+                'net_available' => 0.0,
+                'settlements_count' => 0,
+            ];
+        }
+
+        $payouts = StorePayout::query()
+            ->whereHas('orderStore', fn (Builder $q) => $q->where('store_id', $store->id))
+            ->get();
+
+        $totalSettled = (float) $payouts->where('status', 'completed')->sum('net_amount');
+        $totalPending = (float) $payouts->where('status', 'pending')->sum('net_amount');
+        $totalCommissions = (float) $payouts->sum('commission_amount');
+
+        return [
+            'total_settled' => round($totalSettled, 2),
+            'total_pending' => round($totalPending, 2),
+            'total_commissions' => round($totalCommissions, 2),
+            'net_available' => round($totalSettled, 2),
+            'settlements_count' => $payouts->count(),
+        ];
     }
 
     /**

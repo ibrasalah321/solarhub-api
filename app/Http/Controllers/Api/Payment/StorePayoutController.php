@@ -22,18 +22,52 @@ class StorePayoutController extends Controller
     ) {}
 
     /**
-     * Display all payouts, optionally filtered by ?status=pending|completed|failed.
-     *
-     * NOTE: intended for platform administrators. See UpdateStorePayoutRequest note
-     * regarding the current absence of a role/permission system.
+     * Display payouts: all for platform admins, or owned payouts for store owners.
      */
     public function index(Request $request)
     {
-        $payouts = $this->storePayoutService->list($request->query('status'));
+        $user = $request->user();
+
+        if ($user && $user->can('store-payouts.manage')) {
+            $payouts = $this->storePayoutService->list($request->query('status'));
+        } elseif ($user) {
+            $payouts = $this->storePayoutService->getMyStorePayouts($user, $request->query('status'));
+        } else {
+            abort(401, 'Unauthenticated.');
+        }
 
         return $this->successResponse(
             StorePayoutResource::collection($payouts),
             'Payouts retrieved successfully.'
+        );
+    }
+
+    /**
+     * Display payouts belonging to the authenticated store owner.
+     */
+    public function myPayouts(Request $request)
+    {
+        $payouts = $this->storePayoutService->getMyStorePayouts(
+            $request->user(),
+            $request->query('status')
+        );
+
+        return $this->successResponse(
+            StorePayoutResource::collection($payouts),
+            'Store payouts retrieved successfully.'
+        );
+    }
+
+    /**
+     * Financial summary for the authenticated store owner.
+     */
+    public function summary(Request $request)
+    {
+        $summary = $this->storePayoutService->getFinancialSummary($request->user());
+
+        return $this->successResponse(
+            $summary,
+            'Financial summary retrieved successfully.'
         );
     }
 
@@ -44,7 +78,7 @@ class StorePayoutController extends Controller
     {
         return $this->successResponse(
             new StorePayoutResource(
-                $storePayout->load(['orderStore.store', 'userWallet.walletProvider'])
+                $storePayout->load(['orderStore.order', 'orderStore.store', 'userWallet.walletProvider'])
             ),
             'Payout retrieved successfully.'
         );
