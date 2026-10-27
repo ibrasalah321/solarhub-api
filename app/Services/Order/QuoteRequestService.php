@@ -9,7 +9,14 @@ use Illuminate\Database\Eloquent\Collection;
 
 class QuoteRequestService
 {
-    private const RELATIONS = ['customer', 'storeProduct.masterProduct', 'storeProduct.store'];
+    private const RELATIONS = [
+        'customer',
+        'storeProduct.masterProduct.images',
+        'storeProduct.masterProduct.brand',
+        'storeProduct.masterProduct.category',
+        'storeProduct.governorate',
+        'storeProduct.store',
+    ];
 
     /**
      * List quote requests submitted by the authenticated customer.
