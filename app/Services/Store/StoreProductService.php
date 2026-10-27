@@ -55,7 +55,12 @@ class StoreProductService
         abort_unless($store, 404, 'Store profile not found.');
 
         return $store->storeProducts()
-            ->with(['masterProduct', 'governorate'])
+            ->with([
+                'masterProduct.brand',
+                'masterProduct.category',
+                'masterProduct.images',
+                'governorate',
+            ])
             ->latest()
             ->paginate((int) request()->input('per_page', 100));
     }
@@ -85,7 +90,12 @@ class StoreProductService
             'min_order_qty' => $data['min_order_qty'],
             'warranty_period' => $data['warranty_period'] ?? null,
             'status' => (int) $data['stock_quantity'] > 0 ? 'active' : 'out_of_stock',
-        ])->load(['masterProduct', 'governorate']);
+        ])->load([
+            'masterProduct.brand',
+            'masterProduct.category',
+            'masterProduct.images',
+            'governorate',
+        ]);
     }
 
     /**
@@ -103,7 +113,12 @@ class StoreProductService
 
         $storeProduct->update($data);
 
-        return $storeProduct->load(['masterProduct', 'governorate']);
+        return $storeProduct->load([
+            'masterProduct.brand',
+            'masterProduct.category',
+            'masterProduct.images',
+            'governorate',
+        ]);
     }
 
     /**
