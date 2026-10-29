@@ -20,11 +20,14 @@ class AuthenticationController extends Controller
     ) {}
 
     /**
-     * Log in with email or phone (via the unified `login` field) and password.
+     * Log in with email or phone
+     * and password.
      */
     public function login(LoginRequest $request): JsonResponse
     {
-        $result = $this->authenticationService->login($request->validated());
+        $result = $this->authenticationService->login(
+            $request->validated()
+        );
 
         return $this->successResponse(
             [
@@ -35,8 +38,12 @@ class AuthenticationController extends Controller
         );
     }
 
-    public function loginForRole(RoleLoginRequest $request): JsonResponse
-    {
+    /**
+     * Log in for a specific account role.
+     */
+    public function loginForRole(
+        RoleLoginRequest $request
+    ): JsonResponse {
         $result = $this->authenticationService->login(
             $request->validated(),
             $request->route('accountRole')
@@ -52,24 +59,56 @@ class AuthenticationController extends Controller
     }
 
     /**
-     * Log out by revoking the token used for the current request.
+     * Log out by revoking the current token.
      */
     public function logout(Request $request): JsonResponse
     {
-        $this->authenticationService->logout($request->user());
+        $this->authenticationService->logout(
+            $request->user()
+        );
 
-        return $this->successResponse(null, 'Logged out successfully.');
+        return $this->successResponse(
+            null,
+            'Logged out successfully.'
+        );
     }
 
     /**
-     * Display the authenticated user's own profile.
+     * Display the authenticated user's profile.
+     *
+     * Include the linked store information
+     * so the supplier frontend can access
+     * auth.user.store.id.
      */
     public function me(Request $request): JsonResponse
     {
-        $user = $request->user()->load(['governorate', 'store', 'engineerProfile']);
+        // Get the authenticated user
+        // and load the required relationships.
+        $user = $request->user()->load([
+            'governorate',
+            'store',
+            'engineerProfile',
+        ]);
+
+        // Preserve the existing UserResource
+        // fields and response structure.
+        $profile = (new UserResource($user))
+            ->resolve($request);
+
+        // Include the supplier's linked store.
+        // Return null if no store exists.
+        $profile['store'] = $user->store
+            ? [
+                'id' => $user->store->id,
+                'user_id' => $user->store->user_id,
+                'company_name' => $user->store->company_name,
+                'approval_status' => $user->store->approval_status,
+                'store_type' => $user->store->store_type,
+            ]
+            : null;
 
         return $this->successResponse(
-            new UserResource($user),
+            $profile,
             'Profile retrieved successfully.'
         );
     }
