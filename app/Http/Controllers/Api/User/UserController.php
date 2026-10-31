@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\User;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\User\CreateAdminUserRequest;
 use App\Http\Requests\User\UpdateProfileRequest;
 use App\Http\Requests\User\UpdateUserStatusRequest;
 use App\Http\Resources\User\UserResource;
@@ -32,6 +33,20 @@ class UserController extends Controller
         return $this->successResponse(
             UserResource::collection($users),
             'Users retrieved successfully.'
+        );
+    }
+
+    /**
+     * Create a new administrator account (administrative action).
+     */
+    public function store(CreateAdminUserRequest $request)
+    {
+        $user = $this->userService->createAdmin($request->validated());
+
+        return $this->successResponse(
+            new UserResource($user),
+            'تم إنشاء حساب المسؤول بنجاح.',
+            201
         );
     }
 
