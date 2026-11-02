@@ -21,7 +21,18 @@ class UserResource extends JsonResource
             'governorate' => $this->whenLoaded('governorate', fn () => [
                 'id' => $this->governorate?->id,
                 'name_ar' => $this->governorate?->name_ar,
+                'name_en' => $this->governorate?->name_en,
             ]),
+
+            'roles' => $this->relationLoaded('roles') ? $this->roles->pluck('name')->values()->all() : [],
+            'permissions' => $this->getAllPermissions()->pluck('name')->values()->all(),
+            'role' => $this->relationLoaded('roles') && $this->roles->isNotEmpty()
+                ? $this->roles->first()->name
+                : ($this->relationLoaded('store') && $this->store !== null
+                    ? 'supplier'
+                    : ($this->relationLoaded('engineerProfile') && $this->engineerProfile !== null
+                        ? 'engineer'
+                        : 'customer')),
 
             'has_store' => $this->relationLoaded('store') ? $this->store !== null: null,
             'has_engineer_profile' => $this->relationLoaded('engineerProfile') ? $this->engineerProfile !== null: null,
