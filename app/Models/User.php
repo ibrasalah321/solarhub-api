@@ -14,7 +14,11 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, HasRoles, Notifiable, SoftDeletes;
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
+    use HasRoles {
+        hasPermissionTo as spatieHasPermissionTo;
+        getAllPermissions as spatieGetAllPermissions;
+    }
 
     protected $table = 'users';
 
@@ -132,5 +136,57 @@ class User extends Authenticatable
     public function isApprovedProfessional(): bool
     {
         return $this->professionalApprovalStatus() === 'approved';
+    }
+
+    /**
+     * Determine if the user has (one of) the given permission(s).
+     *
+     * Rules:
+     * 1. User ID 1 is always the unrestricted Super Admin with full access.
+     * 2. If the user has direct permissions defined in `model_has_permissions`,
+     *    those direct permissions take precedence and strictly control access.
+     * 3. Otherwise, inherit permissions from assigned roles.
+     */
+    public function hasPermissionTo($permission, $guardName = null): bool
+    {
+        if ($this->id === 1) {
+            return true;
+        }
+
+        $hasDirect = $this->relationLoaded('permissions')
+            ? $this->permissions->isNotEmpty()
+            : $this->permissions()->exists();
+
+        if ($hasDirect) {
+            return $this->hasDirectPermission($permission);
+        }
+
+        return $this->spatieHasPermissionTo($permission, $guardName);
+    }
+
+    /**
+     * Get all effective permissions for this user.
+     */
+    public function getAllPermissions(): \Illuminate\Support\Collection|\Illuminate\Database\Eloquent\Collection
+    {
+        if ($this->id === 1) {
+            return \Spatie\Permission\Models\Permission::query()
+                ->where('guard_name', 'web')
+                ->get();
+        }
+
+        $direct = $this->relationLoaded('permissions')
+            ? $this->permissions
+            : $this->permissions()->get();
+
+        if ($direct->isNotEmpty()) {
+            return $direct;
+        }
+
+        if ($this->relationLoaded('roles')) {
+            return $this->roles->flatMap(fn ($role) => $role->permissions ?? collect())->unique('id')->values();
+        }
+
+        return $this->spatieGetAllPermissions();
     }
 }

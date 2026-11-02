@@ -16,7 +16,7 @@ class UserService
         $perPage = (int) request()->input('per_page', 20);
 
         return User::query()
-            ->with(['governorate', 'roles', 'store', 'engineerProfile'])
+            ->with(['governorate', 'roles.permissions', 'permissions', 'store', 'engineerProfile'])
             ->latest()
             ->paginate($perPage > 0 ? min($perPage, 100) : 20);
     }

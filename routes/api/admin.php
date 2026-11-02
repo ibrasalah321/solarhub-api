@@ -109,10 +109,27 @@ Route::middleware('auth:sanctum')
                 'status' => 'success',
                 'data' => [
                     'user_id' => $user->id,
-                    'direct_permissions' => $user->permissions
-                        ->pluck('name')->values(),
-                    'all_permissions' => $user->getAllPermissions()
-                        ->pluck('name')->values(),
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $user->roles->first()?->name ?? 'admin',
+                    'direct_permissions' => $user->permissions->pluck('name')->values()->toArray(),
+                    'all_permissions' => $user->getAllPermissions()->pluck('name')->values()->toArray(),
+                    'roles' => $user->roles->pluck('name')->values()->toArray(),
+                ],
+            ]);
+        });
+
+        Route::get('/permissions/users/{user}', function (User $user) {
+            return response()->json([
+                'status' => 'success',
+                'data' => [
+                    'user_id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $user->roles->first()?->name ?? 'admin',
+                    'direct_permissions' => $user->permissions->pluck('name')->values()->toArray(),
+                    'all_permissions' => $user->getAllPermissions()->pluck('name')->values()->toArray(),
+                    'roles' => $user->roles->pluck('name')->values()->toArray(),
                 ],
             ]);
         });

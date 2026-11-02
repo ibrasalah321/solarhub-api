@@ -25,6 +25,7 @@ class UserResource extends JsonResource
             ]),
 
             'roles' => $this->relationLoaded('roles') ? $this->roles->pluck('name')->values()->all() : [],
+            'permissions' => $this->getAllPermissions()->pluck('name')->values()->all(),
             'role' => $this->relationLoaded('roles') && $this->roles->isNotEmpty()
                 ? $this->roles->first()->name
                 : ($this->relationLoaded('store') && $this->store !== null
