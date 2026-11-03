@@ -22,6 +22,7 @@ class UserResource extends JsonResource
             'email_verified' => $this->email_verified_at !== null,
             'email_verified_at' => $this->email_verified_at,
 
+            'role' => $this->roles->first()?->name ?? $this->getRoleNames()->first() ?? null,
             // NOTE: the `users` table has no `role` column yet. This key is
             // kept in the payload shape the client expects but is always
             // null until a role/permission system is added to the schema.
