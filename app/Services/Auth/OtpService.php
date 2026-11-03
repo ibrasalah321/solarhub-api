@@ -47,18 +47,31 @@ class OtpService
         User $user,
         string $plainCode
     ): void {
-        Mail::to($user->email)->send(
-            new VerificationOtpMail(
-                code: $plainCode,
-                expiresInMinutes: $this->expiresInMinutes()
-            )
-        );
+        try {
+            Mail::to($user->email)->send(
+                new VerificationOtpMail(
+                    code: $plainCode,
+                    expiresInMinutes: $this->expiresInMinutes()
+                )
+            );
+            \Log::info("Verification OTP email sent successfully to {$user->email}");
+        } catch (\Throwable $e) {
+            \Log::error("Failed sending OTP email to {$user->email}: " . $e->getMessage());
+            \Log::warning("DEV/FALLBACK OTP Code for {$user->email} is: [{$plainCode}]");
+
+            if (app()->isProduction()) {
+                throw $e;
+            }
+        }
     }
 
     public function verify(
         string $email,
         string $plainCode
     ): User {
+        $email = mb_strtolower(trim($email));
+        $plainCode = trim($plainCode);
+
         $user = User::query()
             ->where('email', $email)
             ->first();
@@ -147,9 +160,11 @@ class OtpService
 
     public function resend(string $email): ?EmailOtp
     {
+        $email = mb_strtolower(trim($email));
+
         $rateLimitKey = 'otp-resend:'.hash(
             'sha256',
-            strtolower($email)
+            $email
         );
 
         $maxAttempts = max(

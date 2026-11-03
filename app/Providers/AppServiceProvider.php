@@ -67,6 +67,22 @@ class AppServiceProvider extends ServiceProvider
                 );
             }
         );
+
+        RateLimiter::for(
+            'login',
+            function (Request $request): Limit {
+                $login = strtolower(trim((string) ($request->input('login') ?? $request->input('email') ?? '')));
+                return Limit::perMinute(10)->by($login . '|' . $request->ip());
+            }
+        );
+
+        RateLimiter::for(
+            'forgot-password',
+            function (Request $request): Limit {
+                $email = strtolower(trim((string) $request->input('email', '')));
+                return Limit::perMinute(5)->by($email . '|' . $request->ip());
+            }
+        );
     }
 
     /**

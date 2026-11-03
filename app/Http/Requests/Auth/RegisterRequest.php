@@ -15,6 +15,20 @@ class RegisterRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $role = $this->role;
+        if (empty($role)) {
+            $path = $this->path();
+            if (str_contains($path, 'customer')) {
+                $role = 'customer';
+            } elseif (str_contains($path, 'engineer')) {
+                $role = 'engineer';
+            } elseif (str_contains($path, 'supplier')) {
+                $role = 'supplier';
+            } else {
+                $role = 'customer';
+            }
+        }
+
         $this->merge([
             'name' => is_string($this->name)
                 ? trim($this->name)
@@ -28,9 +42,9 @@ class RegisterRequest extends FormRequest
                 ? trim($this->phone)
                 : $this->phone,
 
-            'role' => is_string($this->role)
-                ? mb_strtolower(trim($this->role))
-                : $this->role,
+            'role' => is_string($role)
+                ? mb_strtolower(trim($role))
+                : 'customer',
         ]);
     }
 
@@ -48,14 +62,18 @@ class RegisterRequest extends FormRequest
                 'string',
                 'email:rfc',
                 'max:150',
-                'unique:users,email',
+                Rule::unique('users', 'email')->where(function ($query) {
+                    return $query->whereNotNull('email_verified_at')->whereNull('deleted_at');
+                }),
             ],
 
             'phone' => [
                 'required',
                 'string',
                 'regex:/^\+?[0-9]{7,20}$/',
-                'unique:users,phone',
+                Rule::unique('users', 'phone')->where(function ($query) {
+                    return $query->whereNotNull('email_verified_at')->whereNull('deleted_at');
+                }),
             ],
 
             'password' => [
@@ -76,6 +94,21 @@ class RegisterRequest extends FormRequest
                     'engineer',
                 ]),
             ],
+
+            'governorate' => ['nullable', 'string', 'max:100'],
+            'governorate_id' => ['nullable', 'integer'],
+            'city' => ['nullable', 'string', 'max:100'],
+            'address_details' => ['nullable', 'string'],
+            'default_coordinates' => ['nullable', 'string'],
+            'location_coordinates' => ['nullable', 'string'],
+            'company_name' => ['nullable', 'string', 'max:150'],
+            'license_number' => ['nullable', 'string', 'max:100'],
+            'commercial_registry' => ['nullable', 'string', 'max:100'],
+            'store_type' => ['nullable', 'string', Rule::in(['wholesaler', 'retailer', 'authorized_agent'])],
+            'cv' => ['nullable', 'file', 'max:10240'],
+            'cvFile' => ['nullable', 'file', 'max:10240'],
+            'commercial_file' => ['nullable', 'file', 'max:10240'],
+            'commercialRegisterFile' => ['nullable', 'file', 'max:10240'],
         ];
     }
 

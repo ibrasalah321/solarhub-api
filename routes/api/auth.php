@@ -19,6 +19,9 @@ use Illuminate\Support\Facades\Route;
 // Guest-only: registration, email verification, login, password reset.
 Route::middleware('guest')->group(function () {
     Route::post('/auth/register', [RegistrationController::class, 'register']);
+    Route::post('/auth/customer/register', [RegistrationController::class, 'registerCustomer']);
+    Route::post('/auth/engineer/register', [RegistrationController::class, 'registerEngineer']);
+    Route::post('/auth/supplier/register', [RegistrationController::class, 'registerSupplier']);
 
     Route::post('/auth/otp/verify', [OtpController::class, 'verify'])
         ->middleware('throttle:otp-verify');
