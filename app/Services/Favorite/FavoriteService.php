@@ -43,6 +43,7 @@ class FavoriteService
 
             if ($favorite) {
                 $favorite->delete();
+
                 return ['status' => 'removed', 'message' => 'تم حذف المنتج من المفضلة'];
             }
 

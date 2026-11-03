@@ -19,10 +19,41 @@ class EngineerRatingController extends Controller
 
     public function __construct(
         private readonly EngineerRatingService $ratingService
-    ) {
+    ) {}
+
+    /**
+     * Display all engineer ratings for administration.
+     */
+    public function index(Request $request)
+    {
+        $ratings = EngineerRating::query()
+            ->with(['customer', 'engineer.user'])
+            ->latest()
+            ->paginate((int) $request->input('per_page', 100));
+
+        return $this->successResponse(
+            EngineerRatingResource::collection($ratings),
+            'Engineer ratings retrieved successfully.'
+        );
     }
 
-    public function store(StoreEngineerRatingRequest $request,ServiceRequest $serviceRequest) {
+    /**
+     * Toggle approval status of an engineer rating.
+     */
+    public function toggleApproval(EngineerRating $rating)
+    {
+        $rating->update([
+            'is_approved' => ! $rating->is_approved,
+        ]);
+
+        return $this->successResponse(
+            new EngineerRatingResource($rating->load(['customer', 'engineer.user'])),
+            'Rating approval status toggled successfully.'
+        );
+    }
+
+    public function store(StoreEngineerRatingRequest $request, ServiceRequest $serviceRequest)
+    {
         $rating = $this->ratingService->create(
             $request->user(),
             $serviceRequest,
@@ -36,7 +67,8 @@ class EngineerRatingController extends Controller
         );
     }
 
-    public function update(UpdateEngineerRatingRequest $request,EngineerRating $rating) {
+    public function update(UpdateEngineerRatingRequest $request, EngineerRating $rating)
+    {
         $rating = $this->ratingService->update(
             $request->user(),
             $rating,
@@ -49,7 +81,8 @@ class EngineerRatingController extends Controller
         );
     }
 
-    public function destroy(Request $request,EngineerRating $rating) {
+    public function destroy(Request $request, EngineerRating $rating)
+    {
         $this->ratingService->delete(
             $request->user(),
             $rating
@@ -61,7 +94,8 @@ class EngineerRatingController extends Controller
         );
     }
 
-    public function engineerRatings(EngineerProfile $engineer) {
+    public function engineerRatings(EngineerProfile $engineer)
+    {
         $ratings = $this->ratingService
             ->getEngineerRatings($engineer);
 

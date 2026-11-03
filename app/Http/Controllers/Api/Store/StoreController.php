@@ -15,19 +15,18 @@ class StoreController extends Controller
 
     public function __construct(
         private readonly StoreService $storeService
-    ) {
-    }
+    ) {}
 
     public function index()
     {
         $stores = Store::query()
             ->where('approval_status', 'approved')
+            ->with('user.governorate')
             ->withAvg('ratings', 'rating')
             ->withCount([
-                'ratings as approved_ratings_count' =>
-                    fn ($query) => $query->where('is_approved', true),
+                'ratings as approved_ratings_count' => fn ($query) => $query->where('is_approved', true),
             ])
-            ->paginate(15);
+            ->paginate((int) request()->input('per_page', 100));
 
         return $this->successResponse(
             StoreResource::collection($stores),
@@ -39,10 +38,10 @@ class StoreController extends Controller
     {
         abort_unless($store->approval_status === 'approved', 404);
 
-        $store->loadAvg('ratings', 'rating')
+        $store->load('user.governorate')
+            ->loadAvg('ratings', 'rating')
             ->loadCount([
-                'ratings as approved_ratings_count' =>
-                    fn ($query) => $query->where('is_approved', true),
+                'ratings as approved_ratings_count' => fn ($query) => $query->where('is_approved', true),
             ]);
 
         return $this->successResponse(

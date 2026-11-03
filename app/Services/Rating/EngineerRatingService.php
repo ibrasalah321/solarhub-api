@@ -9,7 +9,8 @@ use App\Models\User;
 
 class EngineerRatingService
 {
-    public function create(User $customer,ServiceRequest $serviceRequest,array $data): EngineerRating {
+    public function create(User $customer, ServiceRequest $serviceRequest, array $data): EngineerRating
+    {
 
         $this->ensureCustomerOwnership(
             $customer,
@@ -37,7 +38,7 @@ class EngineerRatingService
             ->first();
 
         abort_if(
-            !$acceptedOffer,
+            ! $acceptedOffer,
             422,
             'No accepted offer was found for this service request.'
         );
@@ -57,7 +58,8 @@ class EngineerRatingService
         ]);
     }
 
-    public function update(User $customer,EngineerRating $rating,array $data): EngineerRating {
+    public function update(User $customer, EngineerRating $rating, array $data): EngineerRating
+    {
 
         $this->ensureRatingOwnership(
             $customer,
@@ -72,7 +74,8 @@ class EngineerRatingService
         ]);
     }
 
-    public function delete(User $customer,EngineerRating $rating): void {
+    public function delete(User $customer, EngineerRating $rating): void
+    {
 
         $this->ensureRatingOwnership(
             $customer,
@@ -82,7 +85,8 @@ class EngineerRatingService
         $rating->delete();
     }
 
-    private function ensureCustomerOwnership(User $customer,ServiceRequest $serviceRequest): void {
+    private function ensureCustomerOwnership(User $customer, ServiceRequest $serviceRequest): void
+    {
         abort_unless(
             $serviceRequest->customer_id === $customer->id,
             403,
@@ -90,7 +94,8 @@ class EngineerRatingService
         );
     }
 
-    private function ensureRatingOwnership(User $customer,EngineerRating $rating): void {
+    private function ensureRatingOwnership(User $customer, EngineerRating $rating): void
+    {
         abort_unless(
             $rating->customer_id === $customer->id,
             403,
@@ -98,7 +103,8 @@ class EngineerRatingService
         );
     }
 
-    public function getEngineerRatings(EngineerProfile $engineer) {
+    public function getEngineerRatings(EngineerProfile $engineer)
+    {
         abort_unless(
             $engineer->approval_status === 'approved',
             404,
@@ -109,6 +115,6 @@ class EngineerRatingService
             ->where('is_approved', true)
             ->with('customer')
             ->latest()
-            ->paginate(10);
+            ->paginate((int) request()->input('per_page', 100));
     }
 }

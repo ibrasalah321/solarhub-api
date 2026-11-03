@@ -8,6 +8,7 @@ use App\Http\Requests\ServiceRequest\StoreServiceRequestRequest;
 use App\Http\Requests\ServiceRequest\UpdateServiceRequestRequest;
 use App\Http\Resources\ServiceRequest\ServiceRequestResource;
 use App\Models\ServiceRequest;
+use App\Services\Notification\DomainNotificationDispatcher;
 use App\Services\ServiceRequest\ServiceRequestService;
 use App\Traits\ApiResponseTrait;
 
@@ -16,8 +17,21 @@ class ServiceRequestController extends Controller
     use ApiResponseTrait;
 
     public function __construct(
-        private readonly ServiceRequestService $serviceRequestService
-    ) {
+        private readonly ServiceRequestService $serviceRequestService,
+        private readonly DomainNotificationDispatcher $notifications
+    ) {}
+
+    public function index(ServiceRequestIndexRequest $request)
+    {
+        $serviceRequests =
+            $this->serviceRequestService->getAllRequests(
+                $request->validated()
+            );
+
+        return $this->successResponse(
+            ServiceRequestResource::collection($serviceRequests),
+            'Service requests retrieved successfully.'
+        );
     }
 
     public function myRequests(ServiceRequestIndexRequest $request)
@@ -47,6 +61,21 @@ class ServiceRequestController extends Controller
         );
     }
 
+    public function show(ServiceRequest $serviceRequest)
+    {
+        $serviceRequest->load([
+            'customer',
+            'serviceType',
+            'governorate',
+            'offers.engineer.user',
+        ]);
+
+        return $this->successResponse(
+            new ServiceRequestResource($serviceRequest),
+            'Service request retrieved successfully.'
+        );
+    }
+
     public function store(StoreServiceRequestRequest $request)
     {
         $serviceRequest =
@@ -55,6 +84,11 @@ class ServiceRequestController extends Controller
                 $request->validated()
             );
 
+        $this->notifications->serviceRequestSubmitted(
+            $request->user(),
+            $serviceRequest
+        );
+
         return $this->successResponse(
             new ServiceRequestResource($serviceRequest),
             'Service request created successfully.',
@@ -62,7 +96,8 @@ class ServiceRequestController extends Controller
         );
     }
 
-    public function update(UpdateServiceRequestRequest $request,ServiceRequest $serviceRequest) {
+    public function update(UpdateServiceRequestRequest $request, ServiceRequest $serviceRequest)
+    {
         $serviceRequest =
             $this->serviceRequestService->update(
                 $request->user(),
@@ -76,7 +111,8 @@ class ServiceRequestController extends Controller
         );
     }
 
-    public function cancel(ServiceRequestIndexRequest $request,ServiceRequest $serviceRequest) {
+    public function cancel(ServiceRequestIndexRequest $request, ServiceRequest $serviceRequest)
+    {
         $serviceRequest =
             $this->serviceRequestService->cancel(
                 $request->user(),

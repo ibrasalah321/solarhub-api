@@ -37,7 +37,7 @@ return [
             'throw' => false,
             'report' => false,
         ],
-        
+
         'supabase_public' => [
             'driver' => 's3',
             'key' => env('SUPABASE_ACCESS_KEY_ID'),
@@ -84,7 +84,7 @@ return [
             'report' => false,
         ],
 
-        'supabase_public' => [
+        '2ca' => [
             'driver' => 's3',
             'key' => env('SUPABASE_ACCESS_KEY_ID'),
             'secret' => env('SUPABASE_SECRET_ACCESS_KEY'),

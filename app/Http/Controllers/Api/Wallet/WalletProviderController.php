@@ -16,8 +16,7 @@ class WalletProviderController extends Controller
 
     public function __construct(
         private readonly SupabaseStorageService $storageService
-    ) {
-    }
+    ) {}
 
     /**
      * Display all active wallet providers.

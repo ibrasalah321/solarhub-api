@@ -15,32 +15,48 @@ class NotificationController extends Controller
 
     public function __construct(
         private readonly NotificationService $notificationService
-    ) {
-    }
+    ) {}
 
-    /**
-     * Display the authenticated user's notifications.
-     * Pass ?unread=1 to list unread notifications only.
-     */
     public function index(Request $request)
     {
-        $notifications = $this->notificationService->getForUser(
+        return $this->inbox($request);
+    }
+
+    public function inbox(Request $request)
+    {
+        $notifications = $this->notificationService->inbox(
             $request->user(),
-            $request->boolean('unread')
+            $request->boolean('unread'),
+            $request->string('type')->toString() ?: null,
+            $request->integer('per_page', 20)
         );
 
         return $this->successResponse(
             NotificationResource::collection($notifications),
-            'Notifications retrieved successfully.'
+            'Incoming notifications retrieved successfully.'
         );
     }
 
-    /**
-     * Mark a single notification as read.
-     */
+    public function outbox(Request $request)
+    {
+        $notifications = $this->notificationService->outbox(
+            $request->user(),
+            $request->string('type')->toString() ?: null,
+            $request->integer('per_page', 20)
+        );
+
+        return $this->successResponse(
+            NotificationResource::collection($notifications),
+            'Sent notifications retrieved successfully.'
+        );
+    }
+
     public function markAsRead(Request $request, Notification $notification)
     {
-        $notification = $this->notificationService->markAsRead($request->user(), $notification);
+        $notification = $this->notificationService->markAsRead(
+            $request->user(),
+            $notification
+        );
 
         return $this->successResponse(
             new NotificationResource($notification),
@@ -48,13 +64,13 @@ class NotificationController extends Controller
         );
     }
 
-    /**
-     * Mark all of the authenticated user's notifications as read.
-     */
     public function markAllAsRead(Request $request)
     {
         $this->notificationService->markAllAsRead($request->user());
 
-        return $this->successResponse(null, 'All notifications marked as read.');
+        return $this->successResponse(
+            null,
+            'All notifications marked as read.'
+        );
     }
 }

@@ -14,8 +14,7 @@ class PlatformSettingController extends Controller
 
     public function __construct(
         private readonly PlatformSettingService $platformSettingService
-    ) {
-    }
+    ) {}
 
     /**
      * Display the platform settings (public — used by client apps for

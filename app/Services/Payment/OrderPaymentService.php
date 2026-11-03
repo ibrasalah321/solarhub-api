@@ -14,8 +14,7 @@ class OrderPaymentService
 {
     public function __construct(
         private readonly SupabaseStorageService $storageService
-    ) {
-    }
+    ) {}
 
     /**
      * List payments for a specific order.

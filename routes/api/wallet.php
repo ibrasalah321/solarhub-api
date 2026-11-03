@@ -36,8 +36,12 @@ Route::middleware('auth:sanctum')->group(function () {
         'updateStatus',
     ])->middleware('permission:order-payments.verify');
 
+    // Store owner payout & settlements endpoints
+    Route::get('/my/store-payouts', [StorePayoutController::class, 'myPayouts']);
+    Route::get('/my/store-payouts/summary', [StorePayoutController::class, 'summary']);
+    Route::get('/store_payouts', [StorePayoutController::class, 'index']);
+
     Route::middleware('permission:store-payouts.manage')->group(function () {
-        Route::get('/store_payouts', [StorePayoutController::class, 'index']);
         Route::post('/store_payouts', [StorePayoutController::class, 'store']);
         Route::get('/store_payouts/{storePayout}', [StorePayoutController::class, 'show']);
         Route::put('/store_payouts/{storePayout}', [StorePayoutController::class, 'update']);

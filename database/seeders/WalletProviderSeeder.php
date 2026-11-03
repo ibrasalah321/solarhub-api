@@ -1,26 +1,23 @@
 <?php
-
 namespace Database\Seeders;
-
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-
 class WalletProviderSeeder extends Seeder
 {
     public function run(): void
     {
-        $providers = [
-            ['code' => 'JAWALI', 'name_ar' => 'محفظة جوالي', 'name_en' => 'Jawali', 'logo_path' => 'wallets/jawali.png', 'is_active' => true],
-            ['code' => 'FLOOSAK', 'name_ar' => 'محفظة فلوسك', 'name_en' => 'Floosak', 'logo_path' => 'wallets/floosak.png', 'is_active' => true],
-            ['code' => 'ONE_CASH', 'name_ar' => 'ون كاش', 'name_en' => 'OneCash', 'logo_path' => 'wallets/onecash.png', 'is_active' => true],
-            ['code' => 'KURIMI', 'name_ar' => 'الكريمي إم فلوس', 'name_en' => 'M-Floos', 'logo_path' => 'wallets/kurimi.png', 'is_active' => true],
+        $providers=[
+            ['JAWALI','جوالي','Jawali','wallets/jawali.png'],
+            ['FLOOSAK','فلوسك','Floosak','wallets/floosak.png'],
+            ['ONE_CASH','ون كاش','One Cash','wallets/onecash.png'],
+            ['KURAIMI_FLOOS','الكريمي فلوس','Al Kuraimi Floos','wallets/kurimi.png'],
         ];
-
-        foreach ($providers as $item) {
-            DB::table('wallet_providers')->updateOrInsert(
-                ['code' => $item['code']],
-                array_merge($item, ['created_at' => now(), 'updated_at' => now()])
-            );
+        foreach($providers as [$code,$nameAr,$nameEn,$logoPath]){
+            DB::table('wallet_providers')->updateOrInsert(['code'=>$code],[
+                'name_ar'=>$nameAr,'name_en'=>$nameEn,'logo_path'=>$logoPath,
+                'is_active'=>true,'updated_at'=>now(),
+                'created_at'=>now(),
+            ]);
         }
     }
 }

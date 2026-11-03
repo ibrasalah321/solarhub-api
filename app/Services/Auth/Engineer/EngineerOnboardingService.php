@@ -13,8 +13,7 @@ class EngineerOnboardingService
 {
     public function __construct(
         private readonly SupabaseStorageService $storageService
-    ) {
-    }
+    ) {}
 
     public function store(User $user, array $data): EngineerProfile
     {
@@ -27,7 +26,7 @@ class EngineerOnboardingService
         }
 
         if ($user->engineerProfile()->exists()) {
-            
+
             throw ValidationException::withMessages([
                 'engineer' => [
                     'Enginner onboarding has already been submitted.',
@@ -36,10 +35,9 @@ class EngineerOnboardingService
         }
 
         $cvPath = null;
-        
 
         try {
-                $cvPath = $this->storageService->uploadPrivate($data['cv'],'engineers/cvs');
+            $cvPath = $this->storageService->uploadPrivate($data['cv'], 'engineers/cvs');
 
             return DB::transaction(function () use (
                 $user,
@@ -48,15 +46,10 @@ class EngineerOnboardingService
             ): EngineerProfile {
                 return EngineerProfile::query()->create([
                     'user_id' => $user->id,
-
-                    'license_number' => $data['license_number'] ?? null,
-
+                    'license_number' => $data['license_number'],
                     'cv_path' => $cvPath,
-
                     'approval_status' => 'pending',
-
                     'rejection_reason' => null,
-
                     'approved_at' => null,
                 ]);
             });
@@ -69,9 +62,9 @@ class EngineerOnboardingService
             throw $exception;
         }
     }
+
     public function status(User $user): ?EngineerProfile
     {
         return $user->engineerProfile;
     }
-
 }

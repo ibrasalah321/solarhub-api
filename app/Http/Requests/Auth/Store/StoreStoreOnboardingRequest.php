@@ -7,6 +7,22 @@ use Illuminate\Validation\Rule;
 
 class StoreStoreOnboardingRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        foreach ([
+            'company_name',
+            'commercial_registry',
+            'address_details',
+            'store_type',
+        ] as $field) {
+            if (is_string($this->input($field))) {
+                $this->merge([
+                    $field => trim($this->input($field)),
+                ]);
+            }
+        }
+    }
+
     public function authorize(): bool
     {
         return true;
@@ -22,18 +38,23 @@ class StoreStoreOnboardingRequest extends FormRequest
             ],
 
             'commercial_registry' => [
-                'nullable',
+                'required',
                 'string',
                 'max:100',
             ],
 
             'commercial_file' => [
-                'nullable',
+                'required',
                 'file',
                 'mimes:pdf,jpg,jpeg,png',
                 'max:5120',
             ],
-            'address_details' => ['required' , 'string'],
+
+            'address_details' => [
+                'required',
+                'string',
+            ],
+
             'store_type' => [
                 'required',
                 Rule::in([

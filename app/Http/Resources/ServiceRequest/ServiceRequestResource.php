@@ -29,30 +29,39 @@ class ServiceRequestResource extends JsonResource
             'governorate' => $this->whenLoaded('governorate', function () {
                 return [
                     'id' => $this->governorate->id,
-                    'name' => $this->governorate->name,
+                    'name' => $this->governorate->name_ar ?? $this->governorate->name_en ?? '',
+                    'name_ar' => $this->governorate->name_ar,
+                    'name_en' => $this->governorate->name_en,
                 ];
             }),
 
-            'system_capacity_estimate' =>
-                $this->system_capacity_estimate,
+            'system_capacity_estimate' => $this->system_capacity_estimate,
 
-            'attachment_file' =>
-                $this->attachment_file,
+            'attachment_file' => $this->attachment_file,
 
-            'location_details' =>
-                $this->location_details,
+            'location_details' => $this->location_details,
 
-            'location_coordinates' =>
-                $this->location_coordinates,
+            'location_coordinates' => $this->location_coordinates,
 
-            'description' =>
-                $this->description,
+            'description' => $this->description,
 
-            'status' =>
-                $this->status,
+            'status' => $this->status,
 
-            'created_at' =>
-                $this->created_at,
+            'offers' => $this->whenLoaded('offers', function () {
+                return $this->offers->map(function ($offer) {
+                    return [
+                        'id' => $offer->id,
+                        'engineer_id' => $offer->engineer_id,
+                        'proposed_cost' => $offer->proposed_cost,
+                        'execution_time_days' => $offer->execution_time_days,
+                        'technical_proposal' => $offer->technical_proposal,
+                        'proposal_file' => $offer->proposal_file,
+                        'status' => $offer->status,
+                    ];
+                });
+            }),
+
+            'created_at' => $this->created_at,
         ];
     }
 }

@@ -78,11 +78,17 @@ class RegisterRequest extends FormRequest
 
             'password' => [
                 'required',
+                'string',
                 'confirmed',
                 Password::min(8)
                     ->letters()
                     ->mixedCase()
                     ->numbers(),
+            ],
+
+            'password_confirmation' => [
+                'required',
+                'string',
             ],
 
             'role' => [
@@ -109,6 +115,10 @@ class RegisterRequest extends FormRequest
             'cvFile' => ['nullable', 'file', 'max:10240'],
             'commercial_file' => ['nullable', 'file', 'max:10240'],
             'commercialRegisterFile' => ['nullable', 'file', 'max:10240'],
+            'governorate_id' => ['nullable', 'integer', 'exists:governorates,id'],
+            'governorate' => ['nullable', 'string', 'max:100'],
+            'default_coordinates' => ['nullable', 'string', 'max:255'],
+            'location_coordinates' => ['nullable', 'string', 'max:255'],
         ];
     }
 

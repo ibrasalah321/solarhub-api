@@ -13,40 +13,38 @@ class StoreProductService
     /**
      * Public storefront browsing of active listings, with basic filters.
      */
-   public function browse(array $filters): LengthAwarePaginator
-{
-    return StoreProduct::query()
-        ->with([
-            'masterProduct.brand',
-            'masterProduct.category',
-            'store',
-            'governorate',
-        ])
-        ->where('status', 'active')
-        ->whereHas('store', function (Builder $storeQuery) {
-            $storeQuery->where('approval_status', 'approved');
-        })
-        ->when(
-            $filters['governorate_id'] ?? null,
-            fn (Builder $query, $id) =>
-                $query->where('governorate_id', $id)
-        )
-        ->when(
-            $filters['category_id'] ?? null,
-            fn (Builder $query, $id) =>
-                $query->whereHas(
+    public function browse(array $filters): LengthAwarePaginator
+    {
+        return StoreProduct::query()
+            ->with([
+                'masterProduct.brand',
+                'masterProduct.category',
+                'masterProduct.images',
+                'store',
+                'governorate',
+            ])
+            ->where('status', 'active')
+            ->whereHas('store', function (Builder $storeQuery) {
+                $storeQuery->where('approval_status', 'approved');
+            })
+            ->when(
+                $filters['governorate_id'] ?? null,
+                fn (Builder $query, $id) => $query->where('governorate_id', $id)
+            )
+            ->when(
+                $filters['category_id'] ?? null,
+                fn (Builder $query, $id) => $query->whereHas(
                     'masterProduct',
-                    fn (Builder $productQuery) =>
-                        $productQuery->where('category_id', $id)
+                    fn (Builder $productQuery) => $productQuery->where('category_id', $id)
                 )
-        )
-        ->when(
-            $filters['store_id'] ?? null,
-            fn (Builder $query, $id) =>
-                $query->where('store_id', $id)
-        )
-        ->paginate(20);
-}
+            )
+            ->when(
+                $filters['store_id'] ?? null,
+                fn (Builder $query, $id) => $query->where('store_id', $id)
+            )
+            ->paginate($filters['per_page'] ?? (int) request()->input('per_page', 100));
+    }
+
     /**
      * List the authenticated store owner's own listings.
      */
@@ -57,9 +55,14 @@ class StoreProductService
         abort_unless($store, 404, 'Store profile not found.');
 
         return $store->storeProducts()
-            ->with(['masterProduct', 'governorate'])
+            ->with([
+                'masterProduct.brand',
+                'masterProduct.category',
+                'masterProduct.images',
+                'governorate',
+            ])
             ->latest()
-            ->paginate(20);
+            ->paginate((int) request()->input('per_page', 100));
     }
 
     /**
@@ -87,7 +90,12 @@ class StoreProductService
             'min_order_qty' => $data['min_order_qty'],
             'warranty_period' => $data['warranty_period'] ?? null,
             'status' => (int) $data['stock_quantity'] > 0 ? 'active' : 'out_of_stock',
-        ])->load(['masterProduct', 'governorate']);
+        ])->load([
+            'masterProduct.brand',
+            'masterProduct.category',
+            'masterProduct.images',
+            'governorate',
+        ]);
     }
 
     /**
@@ -105,7 +113,12 @@ class StoreProductService
 
         $storeProduct->update($data);
 
-        return $storeProduct->load(['masterProduct', 'governorate']);
+        return $storeProduct->load([
+            'masterProduct.brand',
+            'masterProduct.category',
+            'masterProduct.images',
+            'governorate',
+        ]);
     }
 
     /**

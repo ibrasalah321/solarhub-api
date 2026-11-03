@@ -4,74 +4,22 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
+use RuntimeException;
 
 class BrandsSeeder extends Seeder
 {
     public function run(): void
     {
-        $brands = [
-            [
-                'name' => 'Jinko Solar',
-                'website' => 'https://jinkosolar.com',
-            ],
-            [
-                'name' => 'LONGi',
-                'website' => 'https://longi.com',
-            ],
-            [
-                'name' => 'Trina Solar',
-                'website' => 'https://trinasolar.com',
-            ],
-            [
-                'name' => 'Deye',
-                'website' => 'https://deyeinverter.com',
-            ],
-            [
-                'name' => 'Growatt',
-                'website' => 'https://growatt.com',
-            ],
-            [
-                'name' => 'Pylontech',
-                'website' => 'https://pylontech.com.cn',
-            ],
-            [
-                'name' => 'Felicity',
-                'website' => 'https://felicitysolar.com',
-            ],
-            [
-                'name' => 'Must',
-                'website' => 'https://mustpower.com',
-            ],
-            [
-                'name' => 'Voltronic',
-                'website' => 'https://voltronicpower.com',
-            ],
-            [
-                'name' => 'RAGGIE',
-                'website' => 'https://raggie.com',
-            ],
-            [
-                'name' => 'Eastman',
-                'website' => 'https://eastman.com',
-            ],
-        ];
-
-        foreach ($brands as $brand) {
-            DB::table('brands')->updateOrInsert(
-                [
-                    'name' => $brand['name'],
-                ],
-                [
-                    'logo' => 'brands/'
-                        .Str::slug($brand['name'], '_')
-                        .'.png',
-                    'website' => $brand['website'],
-                    'is_active' => true,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]
-            );
+        $catalog = json_decode(file_get_contents(database_path('data/solar_catalog_yemen.json')), true);
+        if (! is_array($catalog) || ! isset($catalog['records'])) {
+            throw new RuntimeException('Invalid solar catalog source data.');
+        }
+        $names = collect($catalog['records'])->pluck('brand')->filter()->unique(fn (string $name) => mb_strtolower($name));
+        foreach ($names as $name) {
+            DB::table('brands')->updateOrInsert(['name' => $name], [
+                'is_active' => true, 'updated_at' => now(),
+                'created_at' => now(),
+            ]);
         }
     }
 }

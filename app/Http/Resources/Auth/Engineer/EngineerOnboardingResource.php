@@ -19,7 +19,7 @@ class EngineerOnboardingResource extends JsonResource
             'has_cv' => (bool) $this->cv_path,
             'license_number' => $this->license_number,
             'approval_status' => $this->approval_status,
-            'rejection_reason' => $this->rejection_reaon
+            'rejection_reason' => $this->rejection_reaon,
         ];
     }
 }

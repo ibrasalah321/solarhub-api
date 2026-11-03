@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers\Api\Payment;
 
 use App\Http\Controllers\Controller;
@@ -7,18 +8,18 @@ use App\Http\Requests\Payment\UpdateOrderPaymentStatusRequest;
 use App\Http\Resources\Payment\OrderPaymentResource;
 use App\Models\Order;
 use App\Models\OrderPayment;
+use App\Services\Notification\DomainNotificationDispatcher;
 use App\Services\Payment\OrderPaymentService;
 use App\Traits\ApiResponseTrait;
-use Illuminate\Http\Request;
 
 class OrderPaymentController extends Controller
 {
     use ApiResponseTrait;
 
     public function __construct(
-        private readonly OrderPaymentService $orderPaymentService
-    ) {
-    }
+        private readonly OrderPaymentService $orderPaymentService,
+        private readonly DomainNotificationDispatcher $notifications
+    ) {}
 
     /**
      * Display all payments for a given order.
@@ -54,6 +55,12 @@ class OrderPaymentController extends Controller
             $request->validated(),
             $request->file('receipt')
         );
+        $payment->loadMissing('order');
+
+        $this->notifications->paymentSubmitted(
+            $request->user(),
+            $payment
+        );
 
         return $this->successResponse(
             new OrderPaymentResource($payment),
@@ -74,6 +81,12 @@ class OrderPaymentController extends Controller
         $payment = $request->validated('status') === 'verified'
             ? $this->orderPaymentService->verify($request->user(), $orderPayment)
             : $this->orderPaymentService->reject($request->user(), $orderPayment);
+        $payment->loadMissing('order.customer');
+
+        $this->notifications->paymentDecision(
+            $request->user(),
+            $payment
+        );
 
         return $this->successResponse(
             new OrderPaymentResource($payment),

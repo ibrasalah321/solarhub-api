@@ -18,8 +18,7 @@ class StoreRatingController extends Controller
 
     public function __construct(
         private readonly StoreRatingService $storeRatingService
-    ) {
-    }
+    ) {}
 
     /**
      * Display approved ratings for a specific store (public).
@@ -30,7 +29,7 @@ class StoreRatingController extends Controller
             ->where('is_approved', true)
             ->with(['customer'])
             ->latest()
-            ->paginate(20);
+            ->paginate((int) request()->input('per_page', 100));
 
         return $this->successResponse(
             StoreRatingResource::collection($ratings),

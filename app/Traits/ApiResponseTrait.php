@@ -1,4 +1,5 @@
-<?php 
+<?php
+
 namespace App\Traits;
 
 trait ApiResponseTrait
@@ -12,7 +13,7 @@ trait ApiResponseTrait
         ], $code);
     }
 
-    protected function errorResponse($data = null, $message, $code)
+    protected function errorResponse($data, $message, $code)
     {
         return response()->json([
             'status' => 'error',

@@ -4,24 +4,25 @@ namespace App\Services\Engineer;
 
 use App\Models\EngineerCertificate;
 use App\Models\EngineerProfile;
+use App\Services\SupabaseStorageService;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\UploadedFile;
-use App\Services\SupabaseStorageService;
 
 class EngineerCertificateService
 {
     public function __construct(
         private readonly SupabaseStorageService $storageService
-    ) {
-    }
+    ) {}
 
-    public function getCertificates(EngineerProfile $engineer): Collection {
+    public function getCertificates(EngineerProfile $engineer): Collection
+    {
         return $engineer->certificates()
             ->latest()
             ->get();
     }
 
-    public function createCertificate(EngineerProfile $engineer,UploadedFile $file): EngineerCertificate {
+    public function createCertificate(EngineerProfile $engineer, UploadedFile $file): EngineerCertificate
+    {
         $path = $this->storageService->uploadPrivate(
             $file,
             "engineers/{$engineer->id}/certificates"
@@ -32,7 +33,8 @@ class EngineerCertificateService
         ]);
     }
 
-    public function deleteCertificate(EngineerProfile $engineer,EngineerCertificate $certificate): void {
+    public function deleteCertificate(EngineerProfile $engineer, EngineerCertificate $certificate): void
+    {
         abort_unless(
             $certificate->engineer_id === $engineer->id,
             403,

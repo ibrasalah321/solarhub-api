@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Relations\Pivot;
 class EngineerSpecialization extends Pivot
 {
     protected $table = 'engineer_specializations';
+
     public $timestamps = false;
 
     protected $fillable = [

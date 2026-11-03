@@ -21,11 +21,20 @@ class EngineerRatingResource extends JsonResource
 
             'engineer_id' => $this->engineer_id,
 
+            'engineer' => $this->whenLoaded('engineer', function () {
+                return [
+                    'id' => $this->engineer->id,
+                    'name' => $this->engineer->user?->name ?? 'مهندس معتمد',
+                ];
+            }),
+
             'service_request_id' => $this->service_request_id,
 
             'rating' => $this->rating,
 
             'comment' => $this->comment,
+
+            'is_approved' => $this->is_approved,
 
             'created_at' => $this->created_at,
         ];

@@ -1,10 +1,10 @@
 <?php
 
 namespace App\Http\Controllers\Api\Rating;
+
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Rating\StoreStoreRatingRequest;
 use App\Http\Requests\Rating\UpdateStoreRatingRequest;
-
 use App\Http\Resources\Rating\StoreRatingResource;
 use App\Models\Store;
 use App\Models\StoreRating;
@@ -18,7 +18,37 @@ class StoreRatingController extends Controller
 
     public function __construct(
         private readonly StoreRatingService $storeRatingService
-    ) {
+    ) {}
+
+    /**
+     * Display all store ratings for administration.
+     */
+    public function index(Request $request)
+    {
+        $ratings = StoreRating::query()
+            ->with(['customer', 'store'])
+            ->latest()
+            ->paginate((int) $request->input('per_page', 100));
+
+        return $this->successResponse(
+            StoreRatingResource::collection($ratings),
+            'Store ratings retrieved successfully.'
+        );
+    }
+
+    /**
+     * Toggle approval status of a store rating.
+     */
+    public function toggleApproval(StoreRating $storeRating)
+    {
+        $storeRating->update([
+            'is_approved' => ! $storeRating->is_approved,
+        ]);
+
+        return $this->successResponse(
+            new StoreRatingResource($storeRating->load(['customer', 'store'])),
+            'Rating approval status toggled successfully.'
+        );
     }
 
     /**

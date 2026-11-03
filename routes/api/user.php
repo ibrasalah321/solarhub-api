@@ -9,6 +9,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::middleware('permission:users.manage')->group(function () {
         Route::get('/users', [UserController::class, 'index']);
+        Route::post('/users', [UserController::class, 'store']);
         Route::get('/users/{user}', [UserController::class, 'show']);
         Route::patch('/users/{user}/status', [
             UserController::class,

@@ -4,22 +4,21 @@ namespace App\Services\Engineer;
 
 use App\Models\EngineerProfile;
 use App\Models\User;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use App\Services\SupabaseStorageService;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class EngineerProfileService
 {
     /**
      * Get approved engineers.
      */
-    public function __construct(private readonly SupabaseStorageService $storageService){
+    public function __construct(private readonly SupabaseStorageService $storageService) {}
 
-    }
     public function getApprovedEngineers(array $filters = []): LengthAwarePaginator
     {
         return EngineerProfile::query()
             ->with([
-                'user',
+                'user.governorate',
                 'specializations',
             ])
             ->withAvg(
@@ -31,7 +30,7 @@ class EngineerProfileService
             ->withCount([
                 'ratings' => function ($query) {
                     $query->where('is_approved', true);
-                }
+                },
             ])
             ->where('approval_status', 'approved')
             ->when(
@@ -71,7 +70,7 @@ class EngineerProfileService
                 }
             )
             ->latest()
-            ->paginate($filters['per_page'] ?? 10);
+            ->paginate($filters['per_page'] ?? (int) request()->input('per_page', 100));
     }
 
     /**
@@ -108,7 +107,8 @@ class EngineerProfileService
             ->first();
     }
 
-    public function updateProfile(EngineerProfile $engineer,array $data): EngineerProfile {
+    public function updateProfile(EngineerProfile $engineer, array $data): EngineerProfile
+    {
         $specializationIds = $data['specialization_ids'] ?? null;
 
         unset($data['specialization_ids']);

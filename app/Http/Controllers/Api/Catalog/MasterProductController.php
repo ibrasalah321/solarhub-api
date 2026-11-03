@@ -17,11 +17,12 @@ class MasterProductController extends Controller
 
     public function __construct(
         private readonly SupabaseStorageService $storageService
-    ) {
-    }
+    ) {}
 
     public function index(Request $request)
     {
+        $perPage = (int) $request->input('per_page', 20);
+
         $products = MasterProduct::query()
             ->with(['category', 'brand', 'images'])
             ->withCount('storeProducts')
@@ -29,12 +30,19 @@ class MasterProductController extends Controller
             ->when($request->query('category_id'), fn ($q, $categoryId) => $q->where('category_id', $categoryId))
             ->when($request->query('brand_id'), fn ($q, $brandId) => $q->where('brand_id', $brandId))
             ->when($request->query('search'), fn ($q, $search) => $q->where('title', 'like', "%{$search}%"))
-            ->paginate(20);
+            ->paginate($perPage);
 
-        return $this->successResponse(
-            MasterProductResource::collection($products),
-            'Products retrieved successfully.'
-        );
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Products retrieved successfully.',
+            'data' => MasterProductResource::collection($products),
+            'meta' => [
+                'current_page' => $products->currentPage(),
+                'last_page' => $products->lastPage(),
+                'per_page' => $products->perPage(),
+                'total' => $products->total(),
+            ],
+        ]);
     }
 
     public function show(MasterProduct $masterProduct)
@@ -64,7 +72,7 @@ class MasterProductController extends Controller
         $product = MasterProduct::create($data);
 
         return $this->successResponse(
-            new MasterProductResource($product->load(['category', 'brand'])),
+            new MasterProductResource($product->load(['category', 'brand', 'specifications', 'images'])),
             'Product created successfully.',
             201
         );
@@ -87,7 +95,7 @@ class MasterProductController extends Controller
         $masterProduct->update($data);
 
         return $this->successResponse(
-            new MasterProductResource($masterProduct->load(['category', 'brand'])),
+            new MasterProductResource($masterProduct->load(['category', 'brand', 'specifications', 'images'])),
             'Product updated successfully.'
         );
     }

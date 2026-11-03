@@ -4,17 +4,16 @@ namespace App\Services\ServiceRequest;
 
 use App\Models\ServiceRequest;
 use App\Models\User;
-
 use App\Services\SupabaseStorageService;
 
 class ServiceRequestService
 {
     public function __construct(
         private readonly SupabaseStorageService $storageService
-    ) {
-    }
+    ) {}
 
-    public function create(User $customer,array $data): ServiceRequest {
+    public function create(User $customer, array $data): ServiceRequest
+    {
 
         if (isset($data['attachment'])) {
             $data['attachment_file'] =
@@ -37,7 +36,9 @@ class ServiceRequestService
             'governorate',
         ]);
     }
-    public function getCustomerRequests(User $customer,array $filters = []) {
+
+    public function getCustomerRequests(User $customer, array $filters = [])
+    {
         return ServiceRequest::query()
             ->where('customer_id', $customer->id)
             ->with([
@@ -48,8 +49,10 @@ class ServiceRequestService
                 $query->where('status', $status);
             })
             ->latest()
-            ->paginate($filters['per_page'] ?? 10);
+            ->paginate($filters['per_page'] ?? (int) request()->input('per_page', 100));
     }
+
+
     public function getOpenRequests(array $filters = [])
     {
         return ServiceRequest::query()
@@ -66,8 +69,31 @@ class ServiceRequestService
                 $query->where('governorate_id', $governorateId);
             })
             ->latest()
-            ->paginate($filters['per_page'] ?? 10);
+            ->paginate($filters['per_page'] ?? (int) request()->input('per_page', 100));
     }
+
+    public function getAllRequests(array $filters = [])
+    {
+        return ServiceRequest::query()
+            ->with([
+                'customer',
+                'serviceType',
+                'governorate',
+                'offers',
+            ])
+            ->when($filters['status'] ?? null, function ($query, $status) {
+                $query->where('status', $status);
+            })
+            ->when($filters['service_type_id'] ?? null, function ($query, $serviceTypeId) {
+                $query->where('service_type_id', $serviceTypeId);
+            })
+            ->when($filters['governorate_id'] ?? null, function ($query, $governorateId) {
+                $query->where('governorate_id', $governorateId);
+            })
+            ->latest()
+            ->paginate($filters['per_page'] ?? (int) request()->input('per_page', 100));
+    }
+
 
     public function findRequest(int $id): ServiceRequest
     {
@@ -81,7 +107,8 @@ class ServiceRequestService
             ->findOrFail($id);
     }
 
-    public function update(User $customer,ServiceRequest $serviceRequest,array $data): ServiceRequest {
+    public function update(User $customer, ServiceRequest $serviceRequest, array $data): ServiceRequest
+    {
 
         $this->ensureCustomerOwnership(
             $customer,
@@ -117,7 +144,8 @@ class ServiceRequestService
         ]);
     }
 
-    public function cancel(User $customer,ServiceRequest $serviceRequest): ServiceRequest {
+    public function cancel(User $customer, ServiceRequest $serviceRequest): ServiceRequest
+    {
 
         $this->ensureCustomerOwnership(
             $customer,
@@ -141,8 +169,8 @@ class ServiceRequestService
         ]);
     }
 
-
-    private function ensureCustomerOwnership(User $customer,ServiceRequest $serviceRequest): void {
+    private function ensureCustomerOwnership(User $customer, ServiceRequest $serviceRequest): void
+    {
         abort_unless(
             $serviceRequest->customer_id === $customer->id,
             403,

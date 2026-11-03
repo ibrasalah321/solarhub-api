@@ -12,8 +12,7 @@ class ProductImageService
 {
     public function __construct(
         private readonly SupabaseStorageService $storageService
-    ) {
-    }
+    ) {}
 
     /**
      * Upload a new image for a product. If marked as featured (or it is the

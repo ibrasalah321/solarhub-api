@@ -16,8 +16,7 @@ class VerificationOtpMail extends Mailable
     public function __construct(
         public readonly string $code,
         public readonly int $expiresInMinutes
-    ) {
-    }
+    ) {}
 
     public function envelope(): Envelope
     {

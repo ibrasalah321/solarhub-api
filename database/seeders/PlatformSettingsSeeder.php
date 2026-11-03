@@ -12,15 +12,15 @@ class PlatformSettingsSeeder extends Seeder
         DB::table('platform_settings')->updateOrInsert(
             ['id' => 1],
             [
-                'platform_name'       => 'سولار هاب - SolarHub',
-                'support_phone'       => '777000000',
-                'support_email'       => 'support@solarhub.com',
-                'logo_path'           => 'settings/logo.png',
-                'favicon_path'        => 'settings/favicon.ico',
-                'currency'            => 'YER',
+                'platform_name' => 'سولار هاب - SolarHub',
+                'support_phone' => '777000000',
+                'support_email' => 'support@solarhub.com',
+                'logo_path' => 'settings/logo.png',
+                'favicon_path' => 'settings/favicon.ico',
+                'currency' => 'YER',
                 'is_maintenance_mode' => false,
-                'created_at'          => now(),
-                'updated_at'          => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
             ]
         );
     }

@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\StorePayout;
+use Illuminate\Database\Seeder;
 
 class StorePayoutSeeder extends Seeder
 {

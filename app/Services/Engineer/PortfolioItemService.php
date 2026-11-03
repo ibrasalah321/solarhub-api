@@ -4,17 +4,17 @@ namespace App\Services\Engineer;
 
 use App\Models\EngineerProfile;
 use App\Models\PortfolioItem;
-use Illuminate\Database\Eloquent\Collection;
 use App\Services\SupabaseStorageService;
+use Illuminate\Database\Eloquent\Collection;
 
 class PortfolioItemService
 {
     public function __construct(
         private readonly SupabaseStorageService $storageService
-    ) {
-    }
+    ) {}
 
-    public function getEngineerPortfolio(EngineerProfile $engineer): Collection {
+    public function getEngineerPortfolio(EngineerProfile $engineer): Collection
+    {
         return $engineer->portfolioItems()
             ->with([
                 'serviceType',
@@ -24,7 +24,8 @@ class PortfolioItemService
             ->get();
     }
 
-    public function create(EngineerProfile $engineer,array $data): PortfolioItem {
+    public function create(EngineerProfile $engineer, array $data): PortfolioItem
+    {
 
         if (isset($data['image'])) {
             $data['image_path'] = $this->storageService->uploadPublic(
@@ -51,7 +52,9 @@ class PortfolioItemService
             'governorate',
         ]);
     }
-    public function update(EngineerProfile $engineer,PortfolioItem $portfolioItem,array $data): PortfolioItem {
+
+    public function update(EngineerProfile $engineer, PortfolioItem $portfolioItem, array $data): PortfolioItem
+    {
 
         $this->ensureOwnership($engineer, $portfolioItem);
 
@@ -89,7 +92,8 @@ class PortfolioItemService
         ]);
     }
 
-    public function delete(EngineerProfile $engineer,PortfolioItem $portfolioItem): void {
+    public function delete(EngineerProfile $engineer, PortfolioItem $portfolioItem): void
+    {
 
         $this->ensureOwnership(
             $engineer,
@@ -110,7 +114,8 @@ class PortfolioItemService
         $portfolioItem->delete();
     }
 
-    public function getPublicPortfolio(int $engineerId,int $perPage = 10) {
+    public function getPublicPortfolio(int $engineerId, int $perPage = 10)
+    {
         $engineer = EngineerProfile::query()
             ->where('approval_status', 'approved')
             ->findOrFail($engineerId);
@@ -124,7 +129,8 @@ class PortfolioItemService
             ->paginate($perPage);
     }
 
-    private function ensureOwnership(EngineerProfile $engineer,PortfolioItem $portfolioItem): void {
+    private function ensureOwnership(EngineerProfile $engineer, PortfolioItem $portfolioItem): void
+    {
         abort_unless(
             $portfolioItem->engineer_id === $engineer->id,
             403,

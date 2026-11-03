@@ -16,14 +16,13 @@ class BrandController extends Controller
 
     public function __construct(
         private readonly SupabaseStorageService $storageService
-    ) {
-    }
+    ) {}
 
     public function index()
     {
         $brands = Brand::query()
             ->withCount('masterProducts')
-            ->where('is_active', true)
+            ->where('is_active', '!=', null)
             ->orderBy('name')
             ->get();
 

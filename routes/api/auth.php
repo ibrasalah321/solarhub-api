@@ -23,6 +23,20 @@ Route::middleware('guest')->group(function () {
     Route::post('/auth/engineer/register', [RegistrationController::class, 'registerEngineer']);
     Route::post('/auth/supplier/register', [RegistrationController::class, 'registerSupplier']);
 
+    foreach (['customer', 'engineer', 'supplier'] as $accountRole) {
+        Route::post(
+            "/auth/{$accountRole}/register",
+            [RegistrationController::class, 'registerForRole']
+        )->defaults('accountRole', $accountRole);
+
+        Route::post(
+            "/auth/{$accountRole}/login",
+            [AuthenticationController::class, 'loginForRole']
+        )
+            ->defaults('accountRole', $accountRole)
+            ->middleware('throttle:login');
+    }
+
     Route::post('/auth/otp/verify', [OtpController::class, 'verify'])
         ->middleware('throttle:otp-verify');
 

@@ -15,8 +15,7 @@ class PasswordController extends Controller
 
     public function __construct(
         private readonly PasswordResetService $passwordResetService
-    ) {
-    }
+    ) {}
 
     /**
      * Request a password reset link.
