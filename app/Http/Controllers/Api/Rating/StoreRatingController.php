@@ -57,7 +57,7 @@ class StoreRatingController extends Controller
     public function storeRatings(Store $store)
     {
         $ratings = $store->ratings()
-            ->where('is_approved', true)
+            ->whereRaw('is_approved IS TRUE')
             ->with(['customer'])
             ->latest()
             ->paginate(20);

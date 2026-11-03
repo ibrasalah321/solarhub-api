@@ -15,34 +15,40 @@ class StoreProductService
      */
     public function browse(array $filters): LengthAwarePaginator
     {
-        return StoreProduct::query()
-            ->with([
-                'masterProduct.brand',
-                'masterProduct.category',
-                'masterProduct.images',
-                'store',
-                'governorate',
-            ])
-            ->where('status', 'active')
-            ->whereHas('store', function (Builder $storeQuery) {
-                $storeQuery->where('approval_status', 'approved');
-            })
-            ->when(
-                $filters['governorate_id'] ?? null,
-                fn (Builder $query, $id) => $query->where('governorate_id', $id)
-            )
-            ->when(
-                $filters['category_id'] ?? null,
-                fn (Builder $query, $id) => $query->whereHas(
-                    'masterProduct',
-                    fn (Builder $productQuery) => $productQuery->where('category_id', $id)
+        $page = (int) request()->input('page', 1);
+        $perPage = (int) ($filters['per_page'] ?? request()->input('per_page', 100));
+        $cacheKey = 'public_store_products_' . md5(json_encode($filters) . "_{$page}_{$perPage}");
+
+        return \Illuminate\Support\Facades\Cache::remember($cacheKey, now()->addMinutes(5), function () use ($filters, $perPage) {
+            return StoreProduct::query()
+                ->with([
+                    'masterProduct.brand',
+                    'masterProduct.category',
+                    'masterProduct.images',
+                    'store',
+                    'governorate',
+                ])
+                ->where('status', 'active')
+                ->whereHas('store', function (Builder $storeQuery) {
+                    $storeQuery->where('approval_status', 'approved');
+                })
+                ->when(
+                    $filters['governorate_id'] ?? null,
+                    fn (Builder $query, $id) => $query->where('governorate_id', $id)
                 )
-            )
-            ->when(
-                $filters['store_id'] ?? null,
-                fn (Builder $query, $id) => $query->where('store_id', $id)
-            )
-            ->paginate($filters['per_page'] ?? (int) request()->input('per_page', 100));
+                ->when(
+                    $filters['category_id'] ?? null,
+                    fn (Builder $query, $id) => $query->whereHas(
+                        'masterProduct',
+                        fn (Builder $productQuery) => $productQuery->where('category_id', $id)
+                    )
+                )
+                ->when(
+                    $filters['store_id'] ?? null,
+                    fn (Builder $query, $id) => $query->where('store_id', $id)
+                )
+                ->paginate($perPage);
+        });
     }
 
     /**
