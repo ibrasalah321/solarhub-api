@@ -20,32 +20,6 @@ Route::middleware('auth:sanctum')->group(function () {
         'myRequests',
     ])->middleware('role:customer');
 
-    Route::get('/service-requests/{serviceRequest}', [
-        ServiceRequestController::class,
-        'show',
-    ])->middleware('can:view,serviceRequest');
-
-    Route::post('/service-requests', [
-    ServiceRequestController::class,
-    'store',
-])->middleware('permission:service-requests.create');
-
-    Route::put('/service-requests/{serviceRequest}', [
-        ServiceRequestController::class,
-        'update',
-    ])->middleware([
-        'permission:service-requests.update',
-        'can:update,serviceRequest',
-    ]);
-
-    Route::patch('/service-requests/{serviceRequest}/cancel', [
-        ServiceRequestController::class,
-        'cancel',
-    ])->middleware([
-        'permission:service-requests.cancel',
-        'can:cancel,serviceRequest',
-    ]);
-
     // الطلبات المفتوحة للمهندس المعتمد.
     Route::get('/service-requests/open', [
         ServiceRequestController::class,
@@ -55,6 +29,32 @@ Route::middleware('auth:sanctum')->group(function () {
         'approved',
     ]);
 
+    Route::get('/service-requests/{serviceRequest}', [
+        ServiceRequestController::class,
+        'show',
+    ])->whereNumber('serviceRequest')->middleware('can:view,serviceRequest');
+
+    Route::post('/service-requests', [
+        ServiceRequestController::class,
+        'store',
+    ])->middleware('permission:service-requests.create');
+
+    Route::put('/service-requests/{serviceRequest}', [
+        ServiceRequestController::class,
+        'update',
+    ])->whereNumber('serviceRequest')->middleware([
+        'permission:service-requests.update',
+        'can:update,serviceRequest',
+    ]);
+
+    Route::patch('/service-requests/{serviceRequest}/cancel', [
+        ServiceRequestController::class,
+        'cancel',
+    ])->whereNumber('serviceRequest')->middleware([
+        'permission:service-requests.cancel',
+        'can:cancel,serviceRequest',
+    ]);
+
     // عروض المهندس.
     Route::get('/my/offers', [OfferController::class, 'myOffers'])
         ->middleware('role:engineer');
@@ -62,12 +62,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/service-requests/{serviceRequest}/offers', [
         OfferController::class,
         'store',
-    ])->middleware([
+    ])->whereNumber('serviceRequest')->middleware([
         'permission:offers.create',
         'approved',
     ]);
 
     Route::put('/offers/{offer}', [OfferController::class, 'update'])
+        ->whereNumber('offer')
         ->middleware([
             'permission:offers.update',
             'approved',
@@ -75,6 +76,7 @@ Route::middleware('auth:sanctum')->group(function () {
         ]);
 
     Route::delete('/offers/{offer}', [OfferController::class, 'destroy'])
+        ->whereNumber('offer')
         ->middleware([
             'permission:offers.delete',
             'approved',
@@ -85,7 +87,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/service-requests/{serviceRequest}/offers', [
         OfferController::class,
         'requestOffers',
-    ])->middleware([
+    ])->whereNumber('serviceRequest')->middleware([
         'role:customer',
         'can:view,serviceRequest',
     ]);
@@ -93,7 +95,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/offers/{offer}/accept', [
         OfferController::class,
         'accept',
-    ])->middleware([
+    ])->whereNumber('offer')->middleware([
         'permission:offers.accept',
         'can:accept,offer',
     ]);

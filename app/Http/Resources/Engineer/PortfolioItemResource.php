@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Engineer;
 
+use App\Services\SupabaseStorageService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -9,6 +10,10 @@ class PortfolioItemResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $storage = app(SupabaseStorageService::class);
+        $imageUrl = $this->image_path ? $storage->publicUrl($this->image_path) : null;
+        $fileUrl = $this->file_path ? $storage->temporaryPrivateUrl($this->file_path, 60) : null;
+
         return [
             'id' => $this->id,
 
@@ -35,8 +40,10 @@ class PortfolioItemResource extends JsonResource
             'description' => $this->description,
 
             'image_path' => $this->image_path,
+            'image_url' => $imageUrl,
 
             'file_path' => $this->file_path,
+            'file_url' => $fileUrl,
 
             'address_text' => $this->address_text,
 

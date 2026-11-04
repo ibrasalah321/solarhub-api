@@ -3,14 +3,21 @@
 use App\Http\Controllers\Api\Enginner\EngineerCertificateController;
 use App\Http\Controllers\Api\Enginner\EngineerProfileController;
 use App\Http\Controllers\Api\Enginner\PortfolioItemController;
+use App\Http\Controllers\Api\Enginner\SpecializationController;
+use App\Http\Controllers\Api\Rating\EngineerRatingController;
 use App\Http\Controllers\Auth\Engineer\EngineerOnboardingController;
 use Illuminate\Support\Facades\Route;
 
+Route::get('/specializations', [SpecializationController::class, 'index']);
 Route::get('/engineers', [EngineerProfileController::class, 'index']);
 Route::get('/engineers/{engineer}', [EngineerProfileController::class, 'show']);
 Route::get('/engineers/{engineer}/portfolio-items', [
     PortfolioItemController::class,
     'publicIndex',
+]);
+Route::get('/engineers/{engineer}/ratings', [
+    EngineerRatingController::class,
+    'engineerRatings',
 ]);
 
 Route::middleware(['auth:sanctum', 'role:engineer'])
@@ -63,4 +70,6 @@ Route::middleware(['auth:sanctum', 'role:engineer'])
             'permission:portfolio-items.delete',
             'can:delete,portfolioItem',
         ]);
+
+        Route::get('/ratings', [EngineerRatingController::class, 'myRatings']);
     });

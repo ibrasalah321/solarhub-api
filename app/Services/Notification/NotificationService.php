@@ -38,8 +38,12 @@ class NotificationService
         ?string $type = null,
         int $perPage = 20
     ): LengthAwarePaginator {
+        $minIdExpression = DB::connection()->getDriverName() === 'pgsql'
+            ? 'MIN(id::text)::uuid'
+            : 'MIN(id)';
+
         $representativeIds = Notification::query()
-           ->selectRaw('MIN(id::text)::uuid')
+           ->selectRaw($minIdExpression)
             ->where('sender_id', $user->id)
             ->when($type, fn ($query) => $query->where('type', $type))
             ->groupBy('event_id');

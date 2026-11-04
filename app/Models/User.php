@@ -149,7 +149,7 @@ class User extends Authenticatable
      */
     public function hasPermissionTo($permission, $guardName = null): bool
     {
-        if ($this->id === 1) {
+        if ($this->id === 1 && $this->hasRole('admin')) {
             return true;
         }
 
@@ -169,7 +169,7 @@ class User extends Authenticatable
      */
     public function getAllPermissions(): \Illuminate\Support\Collection|\Illuminate\Database\Eloquent\Collection
     {
-        if ($this->id === 1) {
+        if ($this->id === 1 && $this->hasRole('admin')) {
             return \Spatie\Permission\Models\Permission::query()
                 ->where('guard_name', 'web')
                 ->get();

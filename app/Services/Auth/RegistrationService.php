@@ -2,12 +2,12 @@
 
 namespace App\Services\Auth;
 
-use App\Models\Governorate;
 use App\Models\EngineerProfile;
 use App\Models\Governorate;
 use App\Models\Store;
 use App\Models\User;
 use App\Services\SupabaseStorageService;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -23,7 +23,103 @@ class RegistrationService
 
     public function register(array $data): User
     {
-        $result = DB::transaction(function () use ($data): array {
+        $role = $data['role'] ?? 'customer';
+        $uploadedPath = null;
+
+        $cvFile = $data['cv'] ?? $data['cvFile'] ?? null;
+        if ($role === 'engineer' && $cvFile instanceof UploadedFile) {
+            $uploadedPath = $this->storageService->uploadPrivate(
+                $cvFile,
+                'engineers/cvs'
+            );
+        }
+
+        $commercialFile = $data['commercial_file'] ?? $data['commercialRegisterFile'] ?? null;
+        if ($role === 'supplier' && $commercialFile instanceof UploadedFile) {
+            $uploadedPath = $this->storageService->uploadPrivate(
+                $commercialFile,
+                'stores/commercial-documents'
+            );
+        }
+
+        $createApplication = ($role === 'engineer' && ! empty($data['license_number']))
+            || ($role === 'supplier' && ! empty($data['company_name']));
+
+        try {
+            $result = $this->createAccount(
+                $data,
+                $role,
+                $uploadedPath,
+                createApplication: $createApplication
+            );
+        } catch (Throwable $exception) {
+            if ($uploadedPath !== null) {
+                $this->storageService->deletePrivate($uploadedPath);
+            }
+
+            throw $exception;
+        }
+
+        return $this->finishRegistration($result);
+    }
+
+    public function registerForRole(array $data, string $role): User
+    {
+        if (! in_array($role, ['customer', 'engineer', 'supplier'], true)) {
+            throw new InvalidArgumentException('Unsupported registration role.');
+        }
+
+        $uploadedPath = null;
+
+        $cvFile = $data['cv'] ?? $data['cvFile'] ?? null;
+        if ($role === 'engineer' && $cvFile instanceof UploadedFile) {
+            $uploadedPath = $this->storageService->uploadPrivate(
+                $cvFile,
+                'engineers/cvs'
+            );
+        }
+
+        $commercialFile = $data['commercial_file'] ?? $data['commercialRegisterFile'] ?? null;
+        if ($role === 'supplier' && $commercialFile instanceof UploadedFile) {
+            $uploadedPath = $this->storageService->uploadPrivate(
+                $commercialFile,
+                'stores/commercial-documents'
+            );
+        }
+
+        try {
+            $result = $this->createAccount(
+                $data,
+                $role,
+                $uploadedPath,
+                createApplication: true
+            );
+        } catch (Throwable $exception) {
+            if ($uploadedPath !== null) {
+                $this->storageService->deletePrivate($uploadedPath);
+            }
+
+            throw $exception;
+        }
+
+        return $this->finishRegistration($result);
+    }
+
+    /**
+     * @return array{user: User, plain_code: string}
+     */
+    private function createAccount(
+        array $data,
+        string $role,
+        ?string $uploadedPath = null,
+        bool $createApplication = false
+    ): array {
+        return DB::transaction(function () use (
+            $data,
+            $role,
+            $uploadedPath,
+            $createApplication
+        ): array {
             $email = mb_strtolower(trim($data['email']));
             $phone = trim($data['phone']);
 
@@ -67,7 +163,7 @@ class RegistrationService
                 ->where('phone', $phone)
                 ->where(function ($q) {
                     $q->whereNull('email_verified_at')
-                      ->orWhereNotNull('deleted_at');
+                        ->orWhereNotNull('deleted_at');
                 })
                 ->when($existingUser, fn ($q) => $q->where('id', '!=', $existingUser->id))
                 ->get();
@@ -79,10 +175,11 @@ class RegistrationService
 
             // 4. Resolve governorate_id if available
             $govId = $data['governorate_id'] ?? null;
-            if (!$govId && !empty($data['governorate'])) {
+            if (! $govId && ! empty($data['governorate'])) {
+                $govName = trim($data['governorate']);
                 $gov = Governorate::query()
-                    ->where('name_ar', 'like', '%' . $data['governorate'] . '%')
-                    ->orWhere('name_en', 'like', '%' . $data['governorate'] . '%')
+                    ->where('name_ar', 'like', "%{$govName}%")
+                    ->orWhere('name_en', 'like', "%{$govName}%")
                     ->first();
                 if ($gov) {
                     $govId = $gov->id;
@@ -101,7 +198,7 @@ class RegistrationService
                     'default_coordinates' => $coords ?? $existingUser->default_coordinates,
                 ]);
 
-                $existingUser->syncRoles([$data['role']]);
+                $existingUser->syncRoles([$role]);
                 $user = $existingUser;
             } else {
                 $user = User::query()->create([
@@ -114,118 +211,37 @@ class RegistrationService
                     'default_coordinates' => $coords,
                 ]);
 
-                $user->assignRole($data['role']);
-        $result = $this->createAccount(
-            $data,
-            $data['role'],
-            createApplication: false
-        );
-
-        return $this->finishRegistration($result);
-    }
-
-    public function registerForRole(array $data, string $role): User
-    {
-        if (! in_array($role, ['customer', 'engineer', 'supplier'], true)) {
-            throw new InvalidArgumentException('Unsupported registration role.');
-        }
-
-        $uploadedPath = null;
-
-        if ($role === 'engineer' && isset($data['cv'])) {
-            $uploadedPath = $this->storageService->uploadPrivate(
-                $data['cv'],
-                'engineers/cvs'
-            );
-        }
-
-        if ($role === 'supplier' && isset($data['commercial_file'])) {
-            $uploadedPath = $this->storageService->uploadPrivate(
-                $data['commercial_file'],
-                'stores/commercial-documents'
-            );
-        }
-
-        try {
-            $result = $this->createAccount(
-                $data,
-                $role,
-                $uploadedPath,
-                createApplication: true
-            );
-        } catch (Throwable $exception) {
-            if ($uploadedPath !== null) {
-                $this->storageService->deletePrivate($uploadedPath);
+                $user->assignRole($role);
             }
-
-            throw $exception;
-        }
-
-        return $this->finishRegistration($result);
-    }
-
-    /**
-     * @return array{user: User, plain_code: string}
-     */
-    private function createAccount(
-        array $data,
-        string $role,
-        ?string $uploadedPath = null,
-        bool $createApplication = false
-    ): array {
-        return DB::transaction(function () use (
-            $data,
-            $role,
-            $uploadedPath,
-            $createApplication
-        ): array {
-            $coords = $data['default_coordinates'] ?? $data['location_coordinates'] ?? null;
-
-            $governorateId = $data['governorate_id'] ?? null;
-            if (! $governorateId && ! empty($data['governorate'])) {
-                $govName = trim($data['governorate']);
-                $governorateId = Governorate::query()
-                    ->where('name_ar', 'like', "%{$govName}%")
-                    ->orWhere('name_en', 'like', "%{$govName}%")
-                    ->value('id');
-            }
-
-            $user = User::query()->create([
-                'governorate_id' => $governorateId,
-                'name' => $data['name'],
-                'email' => $data['email'],
-                'phone' => $data['phone'],
-                'password' => Hash::make($data['password']),
-                'status' => 'active',
-                'default_coordinates' => $coords,
-            ]);
-
-            $user->assignRole($role);
 
             if ($createApplication && $role === 'engineer') {
-                EngineerProfile::query()->create([
-                    'user_id' => $user->id,
-                    'license_number' => $data['license_number'],
-                    'cv_path' => $uploadedPath,
-                    'approval_status' => 'pending',
-                    'rejection_reason' => null,
-                    'approved_at' => null,
-                ]);
+                EngineerProfile::query()->updateOrCreate(
+                    ['user_id' => $user->id],
+                    [
+                        'license_number' => $data['license_number'] ?? null,
+                        'cv_path' => $uploadedPath,
+                        'approval_status' => 'pending',
+                        'rejection_reason' => null,
+                        'approved_at' => null,
+                    ]
+                );
             }
 
             if ($createApplication && $role === 'supplier') {
-                Store::query()->create([
-                    'user_id' => $user->id,
-                    'company_name' => $data['company_name'],
-                    'commercial_registry' => $data['commercial_registry'],
-                    'commercial_file_path' => $uploadedPath,
-                    'store_type' => $data['store_type'],
-                    'address_details' => $data['address_details'],
-                    'approval_status' => 'pending',
-                    'rejection_reason' => null,
-                    'approved_at' => null,
-                    'location_coordinates' => $coords,
-                ]);
+                Store::query()->updateOrCreate(
+                    ['user_id' => $user->id],
+                    [
+                        'company_name' => $data['company_name'] ?? null,
+                        'commercial_registry' => $data['commercial_registry'] ?? null,
+                        'commercial_file_path' => $uploadedPath,
+                        'store_type' => $data['store_type'] ?? null,
+                        'address_details' => $data['address_details'] ?? null,
+                        'approval_status' => 'pending',
+                        'rejection_reason' => null,
+                        'approved_at' => null,
+                        'location_coordinates' => $coords,
+                    ]
+                );
             }
 
             $otpData = $this->otpService->generate($user);
