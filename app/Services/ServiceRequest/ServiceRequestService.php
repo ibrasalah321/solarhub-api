@@ -44,6 +44,7 @@ class ServiceRequestService
             ->with([
                 'serviceType',
                 'governorate',
+                'offers.engineer.user',
             ])
             ->when($filters['status'] ?? null, function ($query, $status) {
                 $query->where('status', $status);

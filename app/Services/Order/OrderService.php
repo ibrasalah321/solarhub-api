@@ -18,7 +18,11 @@ class OrderService
     {
         return Order::query()
             ->where('customer_id', $customer->id)
-            ->with(['governorate'])
+            ->with([
+                'governorate',
+                'orderStores.store',
+                'orderStores.items.storeProduct.masterProduct',
+            ])
             ->latest()
             ->paginate((int) request()->input('per_page', 100));
     }
