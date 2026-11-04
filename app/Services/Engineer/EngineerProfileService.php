@@ -16,61 +16,67 @@ class EngineerProfileService
 
     public function getApprovedEngineers(array $filters = []): LengthAwarePaginator
     {
-        return EngineerProfile::query()
-            ->with([
-                'user.governorate',
-                'specializations',
-            ])
-            ->withAvg(
-                ['ratings' => function ($query) {
-                    $query->where('is_approved', true);
-                }],
-                'rating'
-            )
-            ->withCount([
-                'ratings' => function ($query) {
-                    $query->where('is_approved', true);
-                },
-            ])
-            ->where('approval_status', 'approved')
-            ->when(
-                $filters['search'] ?? null,
-                function ($query, $search) {
-                    $query->whereHas('user', function ($userQuery) use ($search) {
-                        $userQuery->where('name', 'like', "%{$search}%");
-                    });
-                }
-            )
-            ->when(
-                $filters['specialization_id'] ?? null,
-                function ($query, $specializationId) {
-                    $query->whereHas(
-                        'specializations',
-                        function ($specializationQuery) use ($specializationId) {
-                            $specializationQuery->where(
-                                'specializations.id',
-                                $specializationId
-                            );
-                        }
-                    );
-                }
-            )
-            ->when(
-                $filters['governorate_id'] ?? null,
-                function ($query, $governorateId) {
-                    $query->whereHas(
-                        'user',
-                        function ($userQuery) use ($governorateId) {
-                            $userQuery->where(
-                                'governorate_id',
-                                $governorateId
-                            );
-                        }
-                    );
-                }
-            )
-            ->latest()
-            ->paginate($filters['per_page'] ?? (int) request()->input('per_page', 100));
+        $page = (int) request()->input('page', 1);
+        $perPage = (int) ($filters['per_page'] ?? request()->input('per_page', 100));
+        $cacheKey = 'public_engineers_' . md5(json_encode($filters) . "_{$page}_{$perPage}");
+
+        return \Illuminate\Support\Facades\Cache::remember($cacheKey, now()->addMinutes(5), function () use ($filters, $perPage) {
+            return EngineerProfile::query()
+                ->with([
+                    'user.governorate',
+                    'specializations',
+                ])
+                ->withAvg(
+                    ['ratings' => function ($query) {
+                        $query->whereRaw('is_approved IS TRUE');
+                    }],
+                    'rating'
+                )
+                ->withCount([
+                    'ratings' => function ($query) {
+                        $query->whereRaw('is_approved IS TRUE');
+                    },
+                ])
+                ->where('approval_status', 'approved')
+                ->when(
+                    $filters['search'] ?? null,
+                    function ($query, $search) {
+                        $query->whereHas('user', function ($userQuery) use ($search) {
+                            $userQuery->where('name', 'like', "%{$search}%");
+                        });
+                    }
+                )
+                ->when(
+                    $filters['specialization_id'] ?? null,
+                    function ($query, $specializationId) {
+                        $query->whereHas(
+                            'specializations',
+                            function ($specializationQuery) use ($specializationId) {
+                                $specializationQuery->where(
+                                    'specializations.id',
+                                    $specializationId
+                                );
+                            }
+                        );
+                    }
+                )
+                ->when(
+                    $filters['governorate_id'] ?? null,
+                    function ($query, $governorateId) {
+                        $query->whereHas(
+                            'user',
+                            function ($userQuery) use ($governorateId) {
+                                $userQuery->where(
+                                    'governorate_id',
+                                    $governorateId
+                                );
+                            }
+                        );
+                    }
+                )
+                ->latest()
+                ->paginate($perPage);
+        });
     }
 
     /**

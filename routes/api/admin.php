@@ -60,15 +60,15 @@ Route::middleware('auth:sanctum')
 
         // 2. عرض قائمة المشرفين / الأدمنز مع أدوارهم وصلاحياتهم.
         Route::get('/permissions/admins', function () {
-            $admins = User::role('admin')->with(['roles', 'permissions'])->get();
+            $admins = User::role('admin')->with(['roles.permissions', 'permissions'])->get();
             $otherStaff = User::has('permissions')
                 ->whereNotIn('id', $admins->pluck('id'))
-                ->with(['roles', 'permissions'])
+                ->with(['roles.permissions', 'permissions'])
                 ->get();
             $allAdmins = $admins->merge($otherStaff);
 
             if ($allAdmins->isEmpty()) {
-                $allAdmins = User::with(['roles', 'permissions'])->limit(15)->get();
+                $allAdmins = User::with(['roles.permissions', 'permissions'])->limit(15)->get();
             }
 
             $result = $allAdmins->map(function ($user) {

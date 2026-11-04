@@ -19,14 +19,20 @@ class StoreController extends Controller
 
     public function index()
     {
-        $stores = Store::query()
-            ->where('approval_status', 'approved')
-            ->with('user.governorate')
-            ->withAvg('ratings', 'rating')
-            ->withCount([
-                'ratings as approved_ratings_count' => fn ($query) => $query->where('is_approved', true),
-            ])
-            ->paginate((int) request()->input('per_page', 100));
+        $perPage = (int) request()->input('per_page', 100);
+        $page = (int) request()->input('page', 1);
+        $cacheKey = "public_stores_page_{$page}_{$perPage}";
+
+        $stores = \Illuminate\Support\Facades\Cache::remember($cacheKey, now()->addMinutes(5), function () use ($perPage) {
+            return Store::query()
+                ->where('approval_status', 'approved')
+                ->with('user.governorate')
+                ->withAvg('ratings', 'rating')
+                ->withCount([
+                    'ratings as approved_ratings_count' => fn ($query) => $query->whereRaw('is_approved IS TRUE'),
+                ])
+                ->paginate($perPage);
+        });
 
         return $this->successResponse(
             StoreResource::collection($stores),
@@ -41,7 +47,7 @@ class StoreController extends Controller
         $store->load('user.governorate')
             ->loadAvg('ratings', 'rating')
             ->loadCount([
-                'ratings as approved_ratings_count' => fn ($query) => $query->where('is_approved', true),
+                'ratings as approved_ratings_count' => fn ($query) => $query->whereRaw('is_approved IS TRUE'),
             ]);
 
         return $this->successResponse(

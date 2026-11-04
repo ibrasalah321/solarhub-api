@@ -169,8 +169,9 @@ class User extends Authenticatable
      */
     public function getAllPermissions(): \Illuminate\Support\Collection|\Illuminate\Database\Eloquent\Collection
     {
+        static $cachedSuperAdminPerms = null;
         if ($this->id === 1 && $this->hasRole('admin')) {
-            return \Spatie\Permission\Models\Permission::query()
+            return $cachedSuperAdminPerms ??= \Spatie\Permission\Models\Permission::query()
                 ->where('guard_name', 'web')
                 ->get();
         }
@@ -184,7 +185,7 @@ class User extends Authenticatable
         }
 
         if ($this->relationLoaded('roles')) {
-            return $this->roles->flatMap(fn ($role) => $role->permissions ?? collect())->unique('id')->values();
+            return $this->roles->flatMap(fn ($role) => $role->relationLoaded('permissions') ? $role->permissions : ($role->permissions ?? collect()))->unique('id')->values();
         }
 
         return $this->spatieGetAllPermissions();
