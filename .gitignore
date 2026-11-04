@@ -22,3 +22,13 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Local Database Files, Dumps and Management Scripts
+*.sql
+supabase_backup.sql
+switch-db.bat
+switch-db.php
+start-local-db.bat
+stop-local-db.bat
+start_local_postgres.bat
+stop_local_postgres.bat

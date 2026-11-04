@@ -80,7 +80,7 @@ class RoleRegisterRequest extends FormRequest
         ];
 
         if ($this->route('accountRole') === 'engineer') {
-            $rules += [
+            $rules = array_merge($rules, [
                 'license_number' => ['required', 'string', 'max:100'],
                 'cv' => [
                     'required',
@@ -88,11 +88,11 @@ class RoleRegisterRequest extends FormRequest
                     'mimes:pdf',
                     'max:10240',
                 ],
-            ];
+            ]);
         }
 
         if ($this->route('accountRole') === 'supplier') {
-            $rules += [
+            $rules = array_merge($rules, [
                 'company_name' => ['required', 'string', 'max:150'],
                 'commercial_registry' => [
                     'required',
@@ -115,7 +115,7 @@ class RoleRegisterRequest extends FormRequest
                         'authorized_agent',
                     ]),
                 ],
-            ];
+            ]);
         }
 
         return $rules;

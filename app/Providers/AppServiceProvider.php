@@ -38,44 +38,44 @@ class AppServiceProvider extends ServiceProvider
     }
 
     private function configureRateLimiting(): void
-    {
-        RateLimiter::for('login', function (Request $request): Limit {
-            $login = strtolower(
-                trim((string) $request->input('login'))
-            );
+{
+    RateLimiter::for('login', function (Request $request): Limit {
+        $login = strtolower(trim(
+            (string) ($request->input('login') ?? $request->input('email') ?? '')
+        ));
 
-            return Limit::perMinute(5)->by(
-                'login:' . hash('sha256', $login . '|' . $request->ip())
-            );
-        });
+        return Limit::perMinute(5)->by(
+            $login . '|' . $request->ip()
+        );
+    });
 
-        RateLimiter::for('forgot-password', function (Request $request): Limit {
-            $email = strtolower(
-                trim((string) $request->input('email'))
-            );
+    RateLimiter::for('forgot-password', function (Request $request): Limit {
+        $email = strtolower(trim(
+            (string) $request->input('email', '')
+        ));
 
-            return Limit::perMinute(3)->by(
-                'forgot-password:' . hash('sha256', $email . '|' . $request->ip())
-            );
-        });
+        return Limit::perMinute(5)->by(
+            $email . '|' . $request->ip()
+        );
+    });
 
-        RateLimiter::for('otp-verify', function (Request $request): Limit {
-            return Limit::perMinute(10)->by(
-                $this->otpRateLimitKey($request, 'otp-verify')
-            );
-        });
+    RateLimiter::for('otp-verify', function (Request $request): Limit {
+        return Limit::perMinute(10)->by(
+            $this->otpRateLimitKey($request, 'otp-verify')
+        );
+    });
 
-        RateLimiter::for('otp-resend', function (Request $request): Limit {
-            $maximumAttempts = max(
-                1,
-                (int) config('verification.otp.resend_max_attempts', 3)
-            );
+    RateLimiter::for('otp-resend', function (Request $request): Limit {
+        $maximumAttempts = max(
+            1,
+            (int) config('verification.otp.resend_max_attempts', 3)
+        );
 
-            return Limit::perMinute($maximumAttempts)->by(
-                $this->otpRateLimitKey($request, 'otp-resend')
-            );
-        });
-    }
+        return Limit::perMinute($maximumAttempts)->by(
+            $this->otpRateLimitKey($request, 'otp-resend')
+        );
+    });
+}
 
     private function otpRateLimitKey(
         Request $request,

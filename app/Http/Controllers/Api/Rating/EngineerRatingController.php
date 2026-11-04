@@ -104,4 +104,25 @@ class EngineerRatingController extends Controller
             'Engineer ratings retrieved successfully.'
         );
     }
+
+    public function myRatings(Request $request)
+    {
+        $engineer = app(\App\Services\Engineer\EngineerProfileService::class)
+            ->getMyProfile($request->user());
+
+        if (! $engineer) {
+            return $this->errorResponse('Engineer profile not found.', null, 404);
+        }
+
+        $ratings = $engineer->ratings()
+            ->where('is_approved', true)
+            ->with('customer')
+            ->latest()
+            ->paginate((int) $request->input('per_page', 100));
+
+        return $this->successResponse(
+            EngineerRatingResource::collection($ratings),
+            'Engineer ratings retrieved successfully.'
+        );
+    }
 }
