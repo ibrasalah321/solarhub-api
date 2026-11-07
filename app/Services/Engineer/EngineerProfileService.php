@@ -20,10 +20,23 @@ class EngineerProfileService
         $perPage = (int) ($filters['per_page'] ?? request()->input('per_page', 100));
         $cacheKey = 'public_engineers_' . md5(json_encode($filters) . "_{$page}_{$perPage}");
 
-        return \Illuminate\Support\Facades\Cache::remember($cacheKey, now()->addMinutes(5), function () use ($filters, $perPage) {
+        return \Illuminate\Support\Facades\Cache::remember($cacheKey, now()->addHours(12), function () use ($filters, $perPage) {
             return EngineerProfile::query()
+                ->select([
+                    'id',
+                    'user_id',
+                    'license_number',
+                    'years_of_experience',
+                    'bio',
+                    'profile_photo_path',
+                    'cv_path',
+                    'approval_status',
+                    'approved_at',
+                    'created_at',
+                ])
                 ->with([
-                    'user.governorate',
+                    'user' => fn ($q) => $q->select(['id', 'name', 'governorate_id', 'default_coordinates']),
+                    'user.governorate' => fn ($q) => $q->select(['id', 'name_ar', 'name_en']),
                     'specializations',
                 ])
                 ->withAvg(

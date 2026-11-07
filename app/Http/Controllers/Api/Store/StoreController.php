@@ -23,10 +23,26 @@ class StoreController extends Controller
         $page = (int) request()->input('page', 1);
         $cacheKey = "public_stores_page_{$page}_{$perPage}";
 
-        $stores = \Illuminate\Support\Facades\Cache::remember($cacheKey, now()->addMinutes(5), function () use ($perPage) {
+        $stores = \Illuminate\Support\Facades\Cache::remember($cacheKey, now()->addHours(12), function () use ($perPage) {
             return Store::query()
+                ->select([
+                    'id',
+                    'user_id',
+                    'company_name',
+                    'bio',
+                    'company_logo_path',
+                    'whatsapp_number',
+                    'store_type',
+                    'approval_status',
+                    'address_details',
+                    'location_coordinates',
+                    'created_at',
+                ])
                 ->where('approval_status', 'approved')
-                ->with('user.governorate')
+                ->with([
+                    'user' => fn ($q) => $q->select(['id', 'name', 'governorate_id', 'default_coordinates']),
+                    'user.governorate' => fn ($q) => $q->select(['id', 'name_ar', 'name_en']),
+                ])
                 ->withAvg('ratings', 'rating')
                 ->withCount([
                     'ratings as approved_ratings_count' => fn ($query) => $query->whereRaw('is_approved IS TRUE'),

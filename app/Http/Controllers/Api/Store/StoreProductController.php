@@ -25,6 +25,7 @@ class StoreProductController extends Controller
             'governorate_id',
             'category_id',
             'store_id',
+            'per_page',
         ]));
 
         return $this->successResponse(
