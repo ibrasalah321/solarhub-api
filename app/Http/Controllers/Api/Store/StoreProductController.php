@@ -26,6 +26,7 @@ class StoreProductController extends Controller
             'category_id',
             'store_id',
             'per_page',
+            'random',
         ]));
 
         return $this->successResponse(

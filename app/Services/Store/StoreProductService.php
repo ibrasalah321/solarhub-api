@@ -60,6 +60,10 @@ class StoreProductService
                     $filters['store_id'] ?? null,
                     fn (Builder $query, $id) => $query->where('store_id', $id)
                 )
+                ->when(
+                    $filters['random'] ?? request()->boolean('random'),
+                    fn (Builder $query) => $query->inRandomOrder()
+                )
                 ->paginate($perPage);
         });
     }

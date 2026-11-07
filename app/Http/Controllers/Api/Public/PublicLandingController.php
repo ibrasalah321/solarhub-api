@@ -18,13 +18,14 @@ class PublicLandingController extends Controller
 
     /**
      * Unified, high-performance cached showcase bundle for the public landing page.
-     * Combines products, stores, engineers, and platform statistics in a single call.
+     * Caches the entire pool of active records, and returns a randomized selection
+     * on every request to ensure diverse visibility across all products, stores, and engineers.
      */
     public function showcase()
     {
-        $data = Cache::remember('public_landing_showcase_bundle', now()->addHours(12), function () {
-            // 1. Top 16 approved active products with minimal columns
-            $products = StoreProduct::query()
+        // 1. Cache the entire active approved products pool (6 hours)
+        $productsPool = Cache::remember('all_public_landing_products_pool', now()->addHours(6), function () {
+            return StoreProduct::query()
                 ->select([
                     'id',
                     'master_product_id',
@@ -47,12 +48,12 @@ class PublicLandingController extends Controller
                 ])
                 ->where('status', 'active')
                 ->whereHas('store', fn ($q) => $q->where('approval_status', 'approved'))
-                ->latest('id')
-                ->take(16)
                 ->get();
+        });
 
-            // 2. Top 12 approved stores with minimal columns
-            $stores = Store::query()
+        // 2. Cache the approved stores pool (6 hours)
+        $storesPool = Cache::remember('all_public_landing_stores_pool', now()->addHours(6), function () {
+            return Store::query()
                 ->select([
                     'id',
                     'user_id',
@@ -75,12 +76,12 @@ class PublicLandingController extends Controller
                 ->withCount([
                     'ratings as approved_ratings_count' => fn ($query) => $query->whereRaw('is_approved IS TRUE'),
                 ])
-                ->latest('id')
-                ->take(12)
                 ->get();
+        });
 
-            // 3. Top 12 approved engineers with minimal columns
-            $engineers = EngineerProfile::query()
+        // 3. Cache the approved engineers pool (6 hours)
+        $engineersPool = Cache::remember('all_public_landing_engineers_pool', now()->addHours(6), function () {
+            return EngineerProfile::query()
                 ->select([
                     'id',
                     'user_id',
@@ -106,35 +107,28 @@ class PublicLandingController extends Controller
                 ->withCount([
                     'ratings' => fn ($query) => $query->whereRaw('is_approved IS TRUE'),
                 ])
-                ->latest('id')
-                ->take(12)
                 ->get();
-
-            // 4. Platform-wide counts
-            $totalProductsCount = StoreProduct::query()
-                ->where('status', 'active')
-                ->whereHas('store', fn ($q) => $q->where('approval_status', 'approved'))
-                ->count();
-
-            $totalStoresCount = Store::query()
-                ->where('approval_status', 'approved')
-                ->count();
-
-            $totalEngineersCount = EngineerProfile::query()
-                ->where('approval_status', 'approved')
-                ->count();
-
-            return [
-                'products' => StoreProductResource::collection($products)->resolve(),
-                'stores' => StoreResource::collection($stores)->resolve(),
-                'engineers' => EngineerListResource::collection($engineers)->resolve(),
-                'stats' => [
-                    'totalProducts' => max($totalProductsCount, 80),
-                    'totalStores' => max($totalStoresCount, 12),
-                    'totalEngineers' => max($totalEngineersCount, 14),
-                ],
-            ];
         });
+
+        // 4. Randomize selection from total pools on each call
+        $randomProducts = $productsPool->shuffle()->take(36);
+        $randomStores = $storesPool->shuffle()->take(12);
+        $randomEngineers = $engineersPool->shuffle()->take(12);
+
+        $totalProductsCount = $productsPool->count();
+        $totalStoresCount = $storesPool->count();
+        $totalEngineersCount = $engineersPool->count();
+
+        $data = [
+            'products' => StoreProductResource::collection($randomProducts)->resolve(),
+            'stores' => StoreResource::collection($randomStores)->resolve(),
+            'engineers' => EngineerListResource::collection($randomEngineers)->resolve(),
+            'stats' => [
+                'totalProducts' => max($totalProductsCount, 80),
+                'totalStores' => max($totalStoresCount, 12),
+                'totalEngineers' => max($totalEngineersCount, 14),
+            ],
+        ];
 
         return $this->successResponse($data, 'Landing showcase retrieved successfully.');
     }
