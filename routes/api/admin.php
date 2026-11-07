@@ -77,16 +77,18 @@ Route::middleware('auth:sanctum')
 
         // 1. عرض قائمة الصلاحيات المتاحة.
         Route::get('/permissions', function () {
+            $data = Permission::query()
+                ->where('guard_name', 'web')
+                ->orderBy('name')
+                ->get(['id', 'name']);
+
             return response()->json([
                 'status' => 'success',
-                'data' => Permission::query()
-                    ->where('guard_name', 'web')
-                    ->orderBy('name')
-                    ->get(['id', 'name']),
+                'data' => $data,
             ]);
         });
 
-        // 2. عرض قائمة المشرفين / الأدمنز مع أدوارهم وصلاحياتهم.
+        // 2. عرض قائمة المشرفين / الأدمنز مع أدوارهم وصلاحياتهم الحالية.
         Route::get('/permissions/admins', function () {
             $admins = User::role('admin')->with(['roles.permissions', 'permissions'])->get();
             $otherStaff = User::has('permissions')
