@@ -13,6 +13,8 @@ Route::get('/stores/{store}/ratings', [StoreRatingController::class, 'storeRatin
 Route::get('/store-products', [StoreProductController::class, 'index']);
 Route::get('/store-products/{storeProduct}', [StoreProductController::class, 'show']);
 
+Route::get('/public/landing-showcase', [\App\Http\Controllers\Api\Public\PublicLandingController::class, 'showcase']);
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/stores', [StoreOnboardingController::class, 'store'])
         ->middleware([

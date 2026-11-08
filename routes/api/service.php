@@ -6,8 +6,15 @@ use App\Http\Controllers\Api\ServiceRequest\ServiceTypeController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/service-types', [ServiceTypeController::class, 'index']);
+Route::get('/service-types/{serviceType}', [ServiceTypeController::class, 'show']);
 
 Route::middleware('auth:sanctum')->group(function () {
+    // إدارة أنواع وباقات الخدمات
+    Route::post('/service-types', [ServiceTypeController::class, 'store']);
+    Route::put('/service-types/{serviceType}', [ServiceTypeController::class, 'update']);
+    Route::patch('/service-types/{serviceType}', [ServiceTypeController::class, 'update']);
+    Route::delete('/service-types/{serviceType}', [ServiceTypeController::class, 'destroy']);
+
     // عرض كافة طلبات الخدمات للإدارة والمنصة
     Route::get('/service-requests', [
         ServiceRequestController::class,

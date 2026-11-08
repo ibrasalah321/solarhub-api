@@ -39,6 +39,34 @@ Route::middleware('auth:sanctum')
             AdminApprovalController::class,
             'rejectStore',
         ])->middleware('permission:stores.reject');
+
+        // 0. إحصائيات لوحة التحكم السريعة (خفيفة وسريعة وتمنع إغراق السيرفر)
+        Route::get('/dashboard/stats', function () {
+            return \Illuminate\Support\Facades\Cache::remember('admin_dashboard_stats', now()->addSeconds(60), function () {
+                $usersCount = \App\Models\User::count();
+                $approvedStores = \App\Models\Store::where('approval_status', 'approved')->count();
+                $pendingStores = \App\Models\Store::where('approval_status', 'pending')->count();
+                $approvedEngineers = \App\Models\EngineerProfile::where('approval_status', 'approved')->count();
+                $pendingEngineers = \App\Models\EngineerProfile::where('approval_status', 'pending')->count();
+                $ordersCount = \App\Models\Order::count();
+                $pendingOrders = \App\Models\Order::whereIn('status', ['processing', 'pending'])->count();
+                $openServices = \App\Models\ServiceRequest::whereIn('status', ['open_for_bids', 'open'])->count();
+
+                return response()->json([
+                    'status' => 'success',
+                    'data' => [
+                        'users_count' => $usersCount,
+                        'approved_stores_count' => $approvedStores,
+                        'pending_stores_count' => $pendingStores,
+                        'approved_engineers_count' => $approvedEngineers,
+                        'pending_engineers_count' => $pendingEngineers,
+                        'orders_count' => $ordersCount,
+                        'pending_orders_count' => $pendingOrders,
+                        'open_services_count' => $openServices,
+                    ],
+                ]);
+            });
+        });
     });
 
 
@@ -49,16 +77,18 @@ Route::middleware('auth:sanctum')
 
         // 1. عرض قائمة الصلاحيات المتاحة.
         Route::get('/permissions', function () {
+            $data = Permission::query()
+                ->where('guard_name', 'web')
+                ->orderBy('name')
+                ->get(['id', 'name']);
+
             return response()->json([
                 'status' => 'success',
-                'data' => Permission::query()
-                    ->where('guard_name', 'web')
-                    ->orderBy('name')
-                    ->get(['id', 'name']),
+                'data' => $data,
             ]);
         });
 
-        // 2. عرض قائمة المشرفين / الأدمنز مع أدوارهم وصلاحياتهم.
+        // 2. عرض قائمة المشرفين / الأدمنز مع أدوارهم وصلاحياتهم الحالية.
         Route::get('/permissions/admins', function () {
             $admins = User::role('admin')->with(['roles.permissions', 'permissions'])->get();
             $otherStaff = User::has('permissions')

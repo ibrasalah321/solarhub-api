@@ -19,14 +19,27 @@ class StoreProductService
         $perPage = (int) ($filters['per_page'] ?? request()->input('per_page', 100));
         $cacheKey = 'public_store_products_' . md5(json_encode($filters) . "_{$page}_{$perPage}");
 
-        return \Illuminate\Support\Facades\Cache::remember($cacheKey, now()->addMinutes(5), function () use ($filters, $perPage) {
+        return \Illuminate\Support\Facades\Cache::remember($cacheKey, now()->addHours(12), function () use ($filters, $perPage) {
             return StoreProduct::query()
+                ->select([
+                    'id',
+                    'master_product_id',
+                    'store_id',
+                    'governorate_id',
+                    'price',
+                    'stock_quantity',
+                    'min_order_qty',
+                    'warranty_period',
+                    'status',
+                    'created_at',
+                ])
                 ->with([
-                    'masterProduct.brand',
-                    'masterProduct.category',
-                    'masterProduct.images',
-                    'store',
-                    'governorate',
+                    'masterProduct' => fn ($q) => $q->select(['id', 'brand_id', 'category_id', 'title', 'model_number', 'description']),
+                    'masterProduct.brand' => fn ($q) => $q->select(['id', 'name']),
+                    'masterProduct.category' => fn ($q) => $q->select(['id', 'name_ar', 'name_en', 'slug']),
+                    'masterProduct.images' => fn ($q) => $q->select(['id', 'product_id', 'image_path', 'is_featured']),
+                    'store' => fn ($q) => $q->select(['id', 'company_name', 'approval_status']),
+                    'governorate' => fn ($q) => $q->select(['id', 'name_ar', 'name_en']),
                 ])
                 ->where('status', 'active')
                 ->whereHas('store', function (Builder $storeQuery) {
@@ -46,6 +59,10 @@ class StoreProductService
                 ->when(
                     $filters['store_id'] ?? null,
                     fn (Builder $query, $id) => $query->where('store_id', $id)
+                )
+                ->when(
+                    $filters['random'] ?? request()->boolean('random'),
+                    fn (Builder $query) => $query->inRandomOrder()
                 )
                 ->paginate($perPage);
         });

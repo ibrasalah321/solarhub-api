@@ -9,6 +9,15 @@ use App\Http\Controllers\Auth\Engineer\EngineerOnboardingController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/specializations', [SpecializationController::class, 'index']);
+Route::get('/specializations/{specialization}', [SpecializationController::class, 'show']);
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/specializations', [SpecializationController::class, 'store']);
+    Route::put('/specializations/{specialization}', [SpecializationController::class, 'update']);
+    Route::patch('/specializations/{specialization}', [SpecializationController::class, 'update']);
+    Route::delete('/specializations/{specialization}', [SpecializationController::class, 'destroy']);
+});
+
 Route::get('/engineers', [EngineerProfileController::class, 'index']);
 Route::get('/engineers/{engineer}', [EngineerProfileController::class, 'show']);
 Route::get('/engineers/{engineer}/portfolio-items', [
