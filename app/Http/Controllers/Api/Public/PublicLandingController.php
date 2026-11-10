@@ -52,7 +52,7 @@ class PublicLandingController extends Controller
         });
 
         // 2. Cache the approved stores pool (6 hours)
-        $storesPool = Cache::remember('all_public_landing_stores_pool', now()->addHours(6), function () {
+        $storesPool = Cache::remember('all_public_landing_stores_pool_v2', now()->addHours(6), function () {
             return Store::query()
                 ->select([
                     'id',
@@ -75,6 +75,7 @@ class PublicLandingController extends Controller
                 ->withAvg('ratings', 'rating')
                 ->withCount([
                     'ratings as approved_ratings_count' => fn ($query) => $query->whereRaw('is_approved IS TRUE'),
+                    'storeProducts as store_products_count' => fn ($query) => $query->where('status', 'active'),
                 ])
                 ->get();
         });
@@ -123,10 +124,11 @@ class PublicLandingController extends Controller
             'products' => StoreProductResource::collection($randomProducts)->resolve(),
             'stores' => StoreResource::collection($randomStores)->resolve(),
             'engineers' => EngineerListResource::collection($randomEngineers)->resolve(),
+            // أعداد حقيقية فقط: منتجات نشطة من متاجر معتمدة، متاجر معتمدة، مهندسون معتمدون
             'stats' => [
-                'totalProducts' => max($totalProductsCount, 80),
-                'totalStores' => max($totalStoresCount, 12),
-                'totalEngineers' => max($totalEngineersCount, 14),
+                'totalProducts' => $totalProductsCount,
+                'totalStores' => $totalStoresCount,
+                'totalEngineers' => $totalEngineersCount,
             ],
         ];
 
