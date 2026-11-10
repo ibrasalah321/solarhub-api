@@ -23,13 +23,18 @@ class WalletProviderController extends Controller
      */
     public function index()
     {
-        $walletProviders = WalletProvider::query()
-            ->where('is_active', true)
-            ->latest()
-            ->get();
+        $walletProviders = \App\Support\PublicCatalogCache::remember(
+            \App\Support\PublicCatalogCache::WALLET_PROVIDERS,
+            fn () => WalletProviderResource::collection(
+                WalletProvider::query()
+                    ->where('is_active', true)
+                    ->latest()
+                    ->get()
+            )->resolve()
+        );
 
         return $this->successResponse(
-            WalletProviderResource::collection($walletProviders),
+            $walletProviders,
             'Wallet providers retrieved successfully.'
         );
     }

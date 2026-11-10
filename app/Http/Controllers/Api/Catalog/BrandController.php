@@ -20,14 +20,19 @@ class BrandController extends Controller
 
     public function index()
     {
-        $brands = Brand::query()
-            ->withCount('masterProducts')
-            ->where('is_active', '!=', null)
-            ->orderBy('name')
-            ->get();
+        $brands = \App\Support\PublicCatalogCache::remember(
+            \App\Support\PublicCatalogCache::BRANDS,
+            fn () => BrandResource::collection(
+                Brand::query()
+                    ->withCount('masterProducts')
+                    ->where('is_active', '!=', null)
+                    ->orderBy('name')
+                    ->get()
+            )->resolve()
+        );
 
         return $this->successResponse(
-            BrandResource::collection($brands),
+            $brands,
             'Brands retrieved successfully.'
         );
     }

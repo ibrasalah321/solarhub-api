@@ -2,12 +2,21 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\FlushesPublicCatalogCache;
+use App\Support\PublicCatalogCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ServiceType extends Model
 {
+    use FlushesPublicCatalogCache;
+
+    public static function publicCatalogCacheGroups(): array
+    {
+        return [PublicCatalogCache::SERVICE_TYPES];
+    }
+
     use HasFactory;
 
     protected $table = 'service_types';

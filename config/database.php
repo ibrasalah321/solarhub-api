@@ -99,7 +99,9 @@ return [
             'sslmode' => env('DB_SSLMODE', 'prefer'),
             'options' => extension_loaded('pdo_pgsql') ? array_filter([
                 PDO::ATTR_TIMEOUT => 15,
-                PDO::ATTR_PERSISTENT => false,
+                // إعادة استخدام اتصال قاعدة البيانات بين الطلبات داخل نفس عملية PHP (Herd / php-cgi)
+                // لتجنّب كلفة فتح اتصال جديد بقاعدة بعيدة (TCP + TLS + مصادقة) مع كل طلب
+                PDO::ATTR_PERSISTENT => (bool) env('DB_PERSISTENT', false),
                 // ضروري مع Supabase transaction pooler (المنفذ 6543): رحلة شبكة واحدة لكل استعلام بدل ثلاث
                 PDO::ATTR_EMULATE_PREPARES => (bool) env('DB_EMULATE_PREPARES', true),
             ]) : [],
