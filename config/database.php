@@ -100,6 +100,8 @@ return [
             'options' => extension_loaded('pdo_pgsql') ? array_filter([
                 PDO::ATTR_TIMEOUT => 15,
                 PDO::ATTR_PERSISTENT => false,
+                // ضروري مع Supabase transaction pooler (المنفذ 6543): رحلة شبكة واحدة لكل استعلام بدل ثلاث
+                PDO::ATTR_EMULATE_PREPARES => (bool) env('DB_EMULATE_PREPARES', true),
             ]) : [],
         ],
 

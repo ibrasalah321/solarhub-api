@@ -25,8 +25,7 @@ class EngineerCertificateController extends Controller
      */
     public function index(Request $request)
     {
-        $engineer = $this->engineerProfileService
-            ->getMyProfile($request->user());
+        $engineer = $request->user()->engineerProfile;
 
         if (! $engineer) {
             return $this->errorResponse(
@@ -50,8 +49,7 @@ class EngineerCertificateController extends Controller
      */
     public function store(StoreEngineerCertificateRequest $request)
     {
-        $engineer = $this->engineerProfileService
-            ->getMyProfile($request->user());
+        $engineer = $request->user()->engineerProfile;
 
         if (! $engineer) {
             return $this->errorResponse(
@@ -79,8 +77,7 @@ class EngineerCertificateController extends Controller
      */
     public function destroy(Request $request, EngineerCertificate $certificate)
     {
-        $engineer = $this->engineerProfileService
-            ->getMyProfile($request->user());
+        $engineer = $request->user()->engineerProfile;
 
         if (! $engineer) {
             return $this->errorResponse(

@@ -40,33 +40,29 @@ Route::middleware('auth:sanctum')
             'rejectStore',
         ])->middleware('permission:stores.reject');
 
-        // 0. إحصائيات لوحة التحكم السريعة (خفيفة وسريعة وتمنع إغراق السيرفر)
+        // 0. إحصائيات لوحة التحكم: للمدير فقط، واستعلام واحد بدل ثمانية
         Route::get('/dashboard/stats', function () {
-            return \Illuminate\Support\Facades\Cache::remember('admin_dashboard_stats', now()->addSeconds(60), function () {
-                $usersCount = \App\Models\User::count();
-                $approvedStores = \App\Models\Store::where('approval_status', 'approved')->count();
-                $pendingStores = \App\Models\Store::where('approval_status', 'pending')->count();
-                $approvedEngineers = \App\Models\EngineerProfile::where('approval_status', 'approved')->count();
-                $pendingEngineers = \App\Models\EngineerProfile::where('approval_status', 'pending')->count();
-                $ordersCount = \App\Models\Order::count();
-                $pendingOrders = \App\Models\Order::whereIn('status', ['processing', 'pending'])->count();
-                $openServices = \App\Models\ServiceRequest::whereIn('status', ['open_for_bids', 'open'])->count();
+            $data = \Illuminate\Support\Facades\Cache::remember('admin_dashboard_stats_v2', now()->addSeconds(60), function () {
+                $row = \Illuminate\Support\Facades\DB::selectOne("
+                    select
+                        (select count(*) from users where deleted_at is null) as users_count,
+                        (select count(*) from stores where approval_status = 'approved') as approved_stores_count,
+                        (select count(*) from stores where approval_status = 'pending') as pending_stores_count,
+                        (select count(*) from engineer_profile where approval_status = 'approved') as approved_engineers_count,
+                        (select count(*) from engineer_profile where approval_status = 'pending') as pending_engineers_count,
+                        (select count(*) from orders) as orders_count,
+                        (select count(*) from orders where status in ('processing', 'pending')) as pending_orders_count,
+                        (select count(*) from service_requests where status in ('open_for_bids', 'open')) as open_services_count
+                ");
 
-                return response()->json([
-                    'status' => 'success',
-                    'data' => [
-                        'users_count' => $usersCount,
-                        'approved_stores_count' => $approvedStores,
-                        'pending_stores_count' => $pendingStores,
-                        'approved_engineers_count' => $approvedEngineers,
-                        'pending_engineers_count' => $pendingEngineers,
-                        'orders_count' => $ordersCount,
-                        'pending_orders_count' => $pendingOrders,
-                        'open_services_count' => $openServices,
-                    ],
-                ]);
+                return array_map('intval', (array) $row);
             });
-        });
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $data,
+            ]);
+        })->middleware('role:admin');
     });
 
 
@@ -289,4 +285,23 @@ Route::middleware('auth:sanctum')
         // 7. إدارة الإشعارات والبث العام
         Route::get('/notifications', [\App\Http\Controllers\Api\Notification\AdminNotificationController::class, 'index']);
         Route::post('/notifications/broadcast', [\App\Http\Controllers\Api\Notification\AdminNotificationController::class, 'broadcast']);
+
+        // 8. عمليات كانت تمر عبر مسارات Nuxt غير المحمية (server/api/admin/*)
+        Route::controller(\App\Http\Controllers\Admin\AdminOperationsController::class)->group(function () {
+            Route::get('/orders', 'orders');
+            Route::post('/orders/{order}/status', 'updateOrderStatus');
+
+            Route::get('/finance/payments', 'payments');
+            Route::post('/finance/payments/{payment}/status', 'updatePaymentStatus')->whereNumber('payment');
+            Route::get('/finance/payouts', 'payouts');
+            Route::post('/finance/payouts/{payout}/status', 'updatePayoutStatus')->whereNumber('payout');
+            Route::get('/finance/stats', 'financeStats');
+            Route::get('/finance/settings', 'settings');
+            Route::post('/finance/settings', 'updateSettings');
+
+            Route::get('/wallet-providers', 'walletProviders');
+            Route::post('/wallet-providers', 'storeWalletProvider');
+            Route::put('/wallet-providers/{walletProvider}', 'updateWalletProvider')->whereNumber('walletProvider');
+            Route::delete('/wallet-providers/{walletProvider}', 'destroyWalletProvider')->whereNumber('walletProvider');
+        });
     });

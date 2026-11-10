@@ -23,8 +23,7 @@ class PortfolioItemController extends Controller
 
     public function index(Request $request)
     {
-        $engineer = $this->engineerProfileService
-            ->getMyProfile($request->user());
+        $engineer = $request->user()->engineerProfile;
 
         if (! $engineer) {
             return $this->errorResponse(
@@ -45,8 +44,7 @@ class PortfolioItemController extends Controller
 
     public function store(StorePortfolioItemRequest $request)
     {
-        $engineer = $this->engineerProfileService
-            ->getMyProfile($request->user());
+        $engineer = $request->user()->engineerProfile;
 
         if (! $engineer) {
             return $this->errorResponse(
@@ -70,8 +68,7 @@ class PortfolioItemController extends Controller
 
     public function update(UpdatePortfolioItemRequest $request, PortfolioItem $portfolioItem)
     {
-        $engineer = $this->engineerProfileService
-            ->getMyProfile($request->user());
+        $engineer = $request->user()->engineerProfile;
 
         if (! $engineer) {
             return $this->errorResponse(
@@ -95,8 +92,7 @@ class PortfolioItemController extends Controller
 
     public function destroy(Request $request, PortfolioItem $portfolioItem)
     {
-        $engineer = $this->engineerProfileService
-            ->getMyProfile($request->user());
+        $engineer = $request->user()->engineerProfile;
 
         if (! $engineer) {
             return $this->errorResponse(

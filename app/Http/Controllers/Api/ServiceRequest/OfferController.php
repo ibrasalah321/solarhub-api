@@ -26,8 +26,7 @@ class OfferController extends Controller
 
     public function store(StoreOfferRequest $request, ServiceRequest $serviceRequest)
     {
-        $engineer = $this->engineerProfileService
-            ->getMyProfile($request->user());
+        $engineer = $request->user()->engineerProfile;
 
         if (! $engineer) {
             return $this->errorResponse(
@@ -58,8 +57,7 @@ class OfferController extends Controller
 
     public function myOffers(Request $request)
     {
-        $engineer = $this->engineerProfileService
-            ->getMyProfile($request->user());
+        $engineer = $request->user()->engineerProfile;
 
         if (! $engineer) {
             return $this->errorResponse(
@@ -80,8 +78,7 @@ class OfferController extends Controller
 
     public function update(UpdateOfferRequest $request, Offer $offer)
     {
-        $engineer = $this->engineerProfileService
-            ->getMyProfile($request->user());
+        $engineer = $request->user()->engineerProfile;
 
         if (! $engineer) {
             return $this->errorResponse(
@@ -105,8 +102,7 @@ class OfferController extends Controller
 
     public function destroy(Request $request, Offer $offer)
     {
-        $engineer = $this->engineerProfileService
-            ->getMyProfile($request->user());
+        $engineer = $request->user()->engineerProfile;
 
         if (! $engineer) {
             return $this->errorResponse(

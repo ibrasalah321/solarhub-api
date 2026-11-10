@@ -32,3 +32,6 @@ start-local-db.bat
 stop-local-db.bat
 start_local_postgres.bat
 stop_local_postgres.bat
+
+# Generated archives (may contain secrets)
+*.zip

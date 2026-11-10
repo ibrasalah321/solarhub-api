@@ -18,7 +18,14 @@ return Application::configure(basePath: dirname(__DIR__))
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
             'approved' => \App\Http\Middleware\EnsureProfileIsApproved::class,
         ]);
+
+        // لا يوجد مسار login في الويب: طلبات API غير المصادق عليها ترجع 401 JSON بدل خطأ 500
+        $middleware->redirectGuestsTo(
+            fn (\Illuminate\Http\Request $request) => $request->is('api/*') ? null : '/'
+        );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->shouldRenderJsonWhen(
+            fn (\Illuminate\Http\Request $request) => $request->is('api/*') || $request->expectsJson()
+        );
     })->create();
