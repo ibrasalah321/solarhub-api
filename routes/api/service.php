@@ -8,20 +8,20 @@ use Illuminate\Support\Facades\Route;
 Route::get('/service-types', [ServiceTypeController::class, 'index']);
 Route::get('/service-types/{serviceType}', [ServiceTypeController::class, 'show']);
 
-// إدارة أنواع الخدمات وعرض كافة طلبات الخدمات: للمدير فقط
-Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
+// إدارة أنواع وباقات الخدمات (للإدارة فقط)
+Route::middleware(['auth:sanctum', 'permission:catalog.manage'])->group(function () {
     Route::post('/service-types', [ServiceTypeController::class, 'store']);
     Route::put('/service-types/{serviceType}', [ServiceTypeController::class, 'update']);
     Route::patch('/service-types/{serviceType}', [ServiceTypeController::class, 'update']);
     Route::delete('/service-types/{serviceType}', [ServiceTypeController::class, 'destroy']);
-
-    Route::get('/service-requests', [
-        ServiceRequestController::class,
-        'index',
-    ]);
 });
 
 Route::middleware('auth:sanctum')->group(function () {
+    // عرض كافة طلبات الخدمات (للإدارة فقط)
+    Route::get('/service-requests', [
+        ServiceRequestController::class,
+        'index',
+    ])->middleware('role:admin');
 
     // طلبات العميل.
     Route::get('/my/service-requests', [

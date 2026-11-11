@@ -12,7 +12,8 @@ use Illuminate\Support\Facades\DB;
 
 class StorePayoutService
 {
-    private const ELIGIBLE_ORDER_STORE_STATUSES = ['delivered', 'completed'];
+    // تُصرف المستحقات فقط بعد تأكيد العميل للاستلام (completed)، وليس عند "تم التسليم" من المورد.
+    private const ELIGIBLE_ORDER_STORE_STATUSES = ['completed'];
 
     /**
      * List payouts, optionally filtered by status.
@@ -86,19 +87,25 @@ class StorePayoutService
     {
         $orderStore = OrderStore::query()->findOrFail($data['order_store_id']);
 
-        abort_if(
-            $orderStore->payout()->exists(),
-            409,
-            'A payout has already been created for this order-store.'
-        );
-
         abort_unless(
             in_array($orderStore->status, self::ELIGIBLE_ORDER_STORE_STATUSES, true),
             422,
-            'A payout can only be created once the order has been delivered or completed.'
+            'A payout can only be created after the customer has confirmed delivery.'
         );
 
         return DB::transaction(function () use ($orderStore, $data) {
+            $existing = StorePayout::query()
+                ->where('order_store_id', $orderStore->id)
+                ->lockForUpdate()
+                ->first();
+
+            // يُسمح بإعادة المحاولة فقط إذا فشل الصرف السابق.
+            abort_if(
+                $existing && $existing->status !== 'failed',
+                409,
+                'A payout has already been created for this order-store.'
+            );
+
             $totalAmount = (float) $orderStore->subtotal;
             $commissionRate = (float) $data['commission_rate'];
             $commissionAmount = round($totalAmount * $commissionRate / 100, 2);
@@ -106,7 +113,8 @@ class StorePayoutService
 
             $userWallet = $this->resolveWallet($orderStore, $data['user_wallet_id'] ?? null);
 
-            $payout = StorePayout::create([
+            $payout = $existing ?? new StorePayout();
+            $payout->fill([
                 'order_store_id' => $orderStore->id,
                 'user_wallet_id' => $userWallet?->id,
                 'total_amount' => $totalAmount,
@@ -116,6 +124,8 @@ class StorePayoutService
                 'status' => 'pending',
                 'transfer_reference' => $data['transfer_reference'] ?? null,
             ]);
+            $payout->paid_at = null;
+            $payout->save();
 
             return $payout->load(['orderStore.store', 'userWallet.walletProvider']);
         });

@@ -20,7 +20,7 @@ class EngineerProfileService
         $perPage = (int) ($filters['per_page'] ?? request()->input('per_page', 100));
         $cacheKey = 'public_engineers_' . md5(json_encode($filters) . "_{$page}_{$perPage}");
 
-        return \Illuminate\Support\Facades\Cache::remember($cacheKey, now()->addHours(12), function () use ($filters, $perPage) {
+        return \App\Support\PublicCache::remember($cacheKey, function () use ($filters, $perPage) {
             return EngineerProfile::query()
                 ->select([
                     'id',
@@ -113,6 +113,16 @@ class EngineerProfileService
     /**
      * Get the authenticated engineer profile.
      */
+    /**
+     * ملف المهندس بدون أي علاقات (استعلام واحد) — للعمليات التي تحتاج id الملف فقط.
+     */
+    public function getMyProfileLite(User $user): ?EngineerProfile
+    {
+        return EngineerProfile::query()
+            ->where('user_id', $user->id)
+            ->first();
+    }
+
     public function getMyProfile(User $user): ?EngineerProfile
     {
         return EngineerProfile::query()
@@ -150,13 +160,16 @@ class EngineerProfileService
         if (isset($data['cv'])) {
             $oldCv = $engineer->cv_path;
 
-            $data['cv_path'] = $this->storageService->uploadPublic(
+            // السيرة الذاتية وثيقة خاصة: تُرفع للحاوية الخاصة (كما في التسجيل).
+            $data['cv_path'] = $this->storageService->uploadPrivate(
                 $data['cv'],
                 "engineers/{$engineer->id}/cvs"
             );
 
             unset($data['cv']);
 
+            // الملفات القديمة قد تكون في أي من الحاويتين.
+            $this->storageService->deletePrivate($oldCv);
             $this->storageService->deletePublic($oldCv);
         }
 

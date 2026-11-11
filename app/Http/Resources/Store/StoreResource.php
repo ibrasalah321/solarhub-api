@@ -11,7 +11,7 @@ class StoreResource extends JsonResource
     public function toArray(Request $request): array
     {
         $storage = app(SupabaseStorageService::class);
-        $user = $request->user();
+        $user = $request->user() ?? $request->user('sanctum');
         $isOwnerOrAdmin = $user && ($user->id === $this->user_id || $user->hasRole('admin'));
 
         return [

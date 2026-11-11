@@ -24,7 +24,7 @@ class PublicLandingController extends Controller
     public function showcase()
     {
         // 1. Cache the entire active approved products pool (6 hours)
-        $productsPool = Cache::remember('all_public_landing_products_pool', now()->addHours(6), function () {
+        $productsPool = \App\Support\PublicCache::remember('all_public_landing_products_pool', function () {
             return StoreProduct::query()
                 ->select([
                     'id',
@@ -52,7 +52,7 @@ class PublicLandingController extends Controller
         });
 
         // 2. Cache the approved stores pool (6 hours)
-        $storesPool = Cache::remember('all_public_landing_stores_pool_v2', now()->addHours(6), function () {
+        $storesPool = \App\Support\PublicCache::remember('all_public_landing_stores_pool', function () {
             return Store::query()
                 ->select([
                     'id',
@@ -81,7 +81,7 @@ class PublicLandingController extends Controller
         });
 
         // 3. Cache the approved engineers pool (6 hours)
-        $engineersPool = Cache::remember('all_public_landing_engineers_pool', now()->addHours(6), function () {
+        $engineersPool = \App\Support\PublicCache::remember('all_public_landing_engineers_pool', function () {
             return EngineerProfile::query()
                 ->select([
                     'id',

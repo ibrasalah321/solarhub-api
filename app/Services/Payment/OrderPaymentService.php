@@ -47,6 +47,36 @@ class OrderPaymentService
         );
 
         return DB::transaction(function () use ($order, $data, $receipt) {
+            // المبلغ لا يتجاوز المتبقي من إجمالي الطلب (بعد الدفعات المؤكدة والمعلّقة).
+            $alreadyCovered = (float) $order->payments()
+                ->whereIn('status', ['pending', 'verified'])
+                ->lockForUpdate()
+                ->sum('amount');
+            $remaining = round((float) $order->total_amount - $alreadyCovered, 2);
+
+            abort_if(
+                $remaining <= 0,
+                422,
+                'تمت تغطية إجمالي هذا الطلب بدفعات سابقة.'
+            );
+
+            abort_if(
+                round((float) $data['amount'], 2) > $remaining,
+                422,
+                "المبلغ أكبر من المتبقي على الطلب ({$remaining})."
+            );
+
+            // نفس رقم العملية لا يُستخدم مرتين (منع إعادة استخدام نفس الإيصال).
+            if (! empty($data['transaction_reference'])) {
+                $duplicate = \App\Models\OrderPayment::query()
+                    ->where('transaction_reference', $data['transaction_reference'])
+                    ->when($data['wallet_provider_id'] ?? null, fn ($q, $id) => $q->where('wallet_provider_id', $id))
+                    ->where('status', '!=', 'rejected')
+                    ->exists();
+
+                abort_if($duplicate, 422, 'رقم العملية مستخدم مسبقاً في دفعة أخرى.');
+            }
+
             $receiptPath = $this->storageService->uploadPrivate(
                 $receipt,
                 "orders/{$order->id}/payment-receipts"

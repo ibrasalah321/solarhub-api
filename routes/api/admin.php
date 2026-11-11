@@ -71,207 +71,206 @@ Route::middleware('auth:sanctum')
     ->prefix('admin')
     ->group(function () {
 
-        // 1. عرض قائمة الصلاحيات المتاحة.
-        Route::get('/permissions', function () {
-            $data = Permission::query()
-                ->where('guard_name', 'web')
-                ->orderBy('name')
-                ->get(['id', 'name']);
+        // إدارة الصلاحيات والأدوار: تتطلب users.manage حتى لا يرفع مشرف مقيّد صلاحياته بنفسه.
+        Route::middleware('permission:users.manage')->group(function () {
+            // 1. عرض قائمة الصلاحيات المتاحة.
+            Route::get('/permissions', function () {
+                $data = Permission::query()
+                    ->where('guard_name', 'web')
+                    ->orderBy('name')
+                    ->get(['id', 'name']);
 
-            return response()->json([
-                'status' => 'success',
-                'data' => $data,
-            ]);
-        });
-
-        // 2. عرض قائمة المشرفين / الأدمنز مع أدوارهم وصلاحياتهم الحالية.
-        Route::get('/permissions/admins', function () {
-            $admins = User::role('admin')->with(['roles.permissions', 'permissions'])->get();
-            $otherStaff = User::has('permissions')
-                ->whereNotIn('id', $admins->pluck('id'))
-                ->with(['roles.permissions', 'permissions'])
-                ->get();
-            $allAdmins = $admins->merge($otherStaff);
-
-            if ($allAdmins->isEmpty()) {
-                $allAdmins = User::with(['roles.permissions', 'permissions'])->limit(15)->get();
-            }
-
-            $result = $allAdmins->map(function ($user) {
-                $primaryRole = $user->roles->first()?->name ?? 'admin';
-                $roleTitle = match ($primaryRole) {
-                    'admin' => 'مدير نظام عام (Super Admin)',
-                    'supplier' => 'حساب مورد معتمد (Supplier)',
-                    'engineer' => 'حساب مهندس معتمد (Engineer)',
-                    'customer' => 'عميل مسجل (Customer)',
-                    default => 'مشرف إداري',
-                };
-
-                return [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'phone' => $user->phone,
-                    'status' => $user->status,
-                    'role' => $primaryRole,
-                    'role_title' => $roleTitle,
-                    'roleTitle' => $roleTitle,
-                    'direct_permissions' => $user->permissions->pluck('name')->values()->toArray(),
-                    'all_permissions' => $user->getAllPermissions()->pluck('name')->values()->toArray(),
-                    'roles' => $user->roles->pluck('name')->values()->toArray(),
-                    'created_at' => $user->created_at?->toISOString(),
-                ];
+                return response()->json([
+                    'status' => 'success',
+                    'data' => $data,
+                ]);
             });
 
-            return response()->json([
-                'status' => 'success',
-                'data' => $result,
-            ]);
-        });
+            // 2. عرض قائمة المشرفين / الأدمنز مع أدوارهم وصلاحياتهم الحالية.
+            Route::get('/permissions/admins', function () {
+                $admins = User::role('admin')->with(['roles.permissions', 'permissions'])->get();
+                $otherStaff = User::has('permissions')
+                    ->whereNotIn('id', $admins->pluck('id'))
+                    ->with(['roles.permissions', 'permissions'])
+                    ->get();
+                $allAdmins = $admins->merge($otherStaff);
 
-        // 3. عرض صلاحيات مستخدم.
-        Route::get('/users/{user}/permissions', function (User $user) {
-            return response()->json([
-                'status' => 'success',
-                'data' => [
-                    'user_id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'role' => $user->roles->first()?->name ?? 'admin',
-                    'direct_permissions' => $user->permissions->pluck('name')->values()->toArray(),
-                    'all_permissions' => $user->getAllPermissions()->pluck('name')->values()->toArray(),
-                    'roles' => $user->roles->pluck('name')->values()->toArray(),
-                ],
-            ]);
-        });
+                $result = $allAdmins->map(function ($user) {
+                    $primaryRole = $user->roles->first()?->name ?? 'admin';
+                    $roleTitle = match ($primaryRole) {
+                        'admin' => 'مدير نظام عام (Super Admin)',
+                        'supplier' => 'حساب مورد معتمد (Supplier)',
+                        'engineer' => 'حساب مهندس معتمد (Engineer)',
+                        'customer' => 'عميل مسجل (Customer)',
+                        default => 'مشرف إداري',
+                    };
 
-        Route::get('/permissions/users/{user}', function (User $user) {
-            return response()->json([
-                'status' => 'success',
-                'data' => [
-                    'user_id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'role' => $user->roles->first()?->name ?? 'admin',
-                    'direct_permissions' => $user->permissions->pluck('name')->values()->toArray(),
-                    'all_permissions' => $user->getAllPermissions()->pluck('name')->values()->toArray(),
-                    'roles' => $user->roles->pluck('name')->values()->toArray(),
-                ],
-            ]);
-        });
+                    return [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'phone' => $user->phone,
+                        'status' => $user->status,
+                        'role' => $primaryRole,
+                        'role_title' => $roleTitle,
+                        'roleTitle' => $roleTitle,
+                        'direct_permissions' => $user->permissions->pluck('name')->values()->toArray(),
+                        'all_permissions' => $user->getAllPermissions()->pluck('name')->values()->toArray(),
+                        'roles' => $user->roles->pluck('name')->values()->toArray(),
+                        'created_at' => $user->created_at?->toISOString(),
+                    ];
+                });
 
-        // 4. مزامنة وحفظ صلاحيات المستخدم بالكامل.
-        Route::post('/permissions/users/{user}/sync', function (Request $request, User $user) {
-            $data = $request->validate([
-                'permissions' => 'present|array',
-                'permissions.*' => [
-                    'string',
-                    Rule::exists('permissions', 'name')->where('guard_name', 'web'),
-                ],
-            ]);
+                return response()->json([
+                    'status' => 'success',
+                    'data' => $result,
+                ]);
+            });
 
-            $user->syncPermissions($data['permissions']);
-            $user->unsetRelation('permissions');
+            // 3. عرض صلاحيات مستخدم.
+            Route::get('/users/{user}/permissions', function (User $user) {
+                return response()->json([
+                    'status' => 'success',
+                    'data' => [
+                        'user_id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'role' => $user->roles->first()?->name ?? 'admin',
+                        'direct_permissions' => $user->permissions->pluck('name')->values()->toArray(),
+                        'all_permissions' => $user->getAllPermissions()->pluck('name')->values()->toArray(),
+                        'roles' => $user->roles->pluck('name')->values()->toArray(),
+                    ],
+                ]);
+            });
 
-            return response()->json([
-                'status' => 'success',
-                'message' => 'تم تحديث صلاحيات المشرف بنجاح.',
-                'data' => [
-                    'user_id' => $user->id,
-                    'direct_permissions' => $user->permissions->pluck('name')->values()->toArray(),
-                    'all_permissions' => $user->getAllPermissions()->pluck('name')->values()->toArray(),
-                ],
-            ]);
-        });
+            Route::get('/permissions/users/{user}', function (User $user) {
+                return response()->json([
+                    'status' => 'success',
+                    'data' => [
+                        'user_id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'role' => $user->roles->first()?->name ?? 'admin',
+                        'direct_permissions' => $user->permissions->pluck('name')->values()->toArray(),
+                        'all_permissions' => $user->getAllPermissions()->pluck('name')->values()->toArray(),
+                        'roles' => $user->roles->pluck('name')->values()->toArray(),
+                    ],
+                ]);
+            });
 
-        // 5. تعيين دور إداري لمستخدم.
-        Route::post('/permissions/users/{user}/role', function (Request $request, User $user) {
-            $data = $request->validate([
-                'role' => 'required|string|exists:roles,name',
-            ]);
+            // 4. مزامنة وحفظ صلاحيات المستخدم بالكامل.
+            Route::post('/permissions/users/{user}/sync', function (Request $request, User $user) {
+                $data = $request->validate([
+                    'permissions' => 'present|array',
+                    'permissions.*' => [
+                        'string',
+                        Rule::exists('permissions', 'name')->where('guard_name', 'web'),
+                    ],
+                ]);
 
-            $user->syncRoles([$data['role']]);
-            $user->unsetRelation('roles');
+                $user->syncPermissions($data['permissions']);
+                $user->unsetRelation('permissions');
 
-            return response()->json([
-                'status' => 'success',
-                'message' => "تم تعيين الدور {$data['role']} بنجاح.",
-                'data' => [
-                    'user_id' => $user->id,
-                    'roles' => $user->roles->pluck('name')->values()->toArray(),
-                    'all_permissions' => $user->getAllPermissions()->pluck('name')->values()->toArray(),
-                ],
-            ]);
-        });
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'تم تحديث صلاحيات المشرف بنجاح.',
+                    'data' => [
+                        'user_id' => $user->id,
+                        'direct_permissions' => $user->permissions->pluck('name')->values()->toArray(),
+                        'all_permissions' => $user->getAllPermissions()->pluck('name')->values()->toArray(),
+                    ],
+                ]);
+            });
 
-        // 3. منح صلاحية مباشرة دون حذف الصلاحيات الأخرى.
-        Route::post('/users/{user}/permissions', function (
-            Request $request,
-            User $user
-        ) {
-            $data = $request->validate([
-                'permission' => [
-                    'required',
-                    'string',
-                    Rule::exists('permissions', 'name')
-                        ->where('guard_name', 'web'),
-                ],
-            ]);
+            // 5. تعيين دور إداري لمستخدم.
+            Route::post('/permissions/users/{user}/role', function (Request $request, User $user) {
+                $data = $request->validate([
+                    'role' => 'required|string|exists:roles,name',
+                ]);
 
-            $permission = Permission::findByName(
-                $data['permission'],
-                'web'
-            );
+                $user->syncRoles([$data['role']]);
+                $user->unsetRelation('roles');
 
-            $user->givePermissionTo($permission);
-            $user->unsetRelation('permissions');
+                return response()->json([
+                    'status' => 'success',
+                    'message' => "تم تعيين الدور {$data['role']} بنجاح.",
+                    'data' => [
+                        'user_id' => $user->id,
+                        'roles' => $user->roles->pluck('name')->values()->toArray(),
+                        'all_permissions' => $user->getAllPermissions()->pluck('name')->values()->toArray(),
+                    ],
+                ]);
+            });
 
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Permission granted successfully.',
-                'data' => [
-                    'user_id' => $user->id,
-                    'direct_permissions' => $user->permissions
-                        ->pluck('name')->values(),
-                    'all_permissions' => $user->getAllPermissions()
-                        ->pluck('name')->values(),
-                ],
-            ]);
-        });
+            // 3. منح صلاحية مباشرة دون حذف الصلاحيات الأخرى.
+            Route::post('/users/{user}/permissions', function (
+                Request $request,
+                User $user
+            ) {
+                $data = $request->validate([
+                    'permission' => [
+                        'required',
+                        'string',
+                        Rule::exists('permissions', 'name')
+                            ->where('guard_name', 'web'),
+                    ],
+                ]);
 
-        // 4. إزالة صلاحية مباشرة.
-        Route::delete('/users/{user}/permissions', function (
-            Request $request,
-            User $user
-        ) {
-            $data = $request->validate([
-                'permission' => [
-                    'required',
-                    'string',
-                    Rule::exists('permissions', 'name')
-                        ->where('guard_name', 'web'),
-                ],
-            ]);
+                $permission = Permission::findByName(
+                    $data['permission'],
+                    'web'
+                );
 
-            $permission = Permission::findByName(
-                $data['permission'],
-                'web'
-            );
+                $user->givePermissionTo($permission);
+                $user->unsetRelation('permissions');
 
-            $user->revokePermissionTo($permission);
-            $user->unsetRelation('permissions');
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'Permission granted successfully.',
+                    'data' => [
+                        'user_id' => $user->id,
+                        'direct_permissions' => $user->permissions
+                            ->pluck('name')->values(),
+                        'all_permissions' => $user->getAllPermissions()
+                            ->pluck('name')->values(),
+                    ],
+                ]);
+            });
 
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Direct permission removed successfully.',
-                'data' => [
-                    'user_id' => $user->id,
-                    'direct_permissions' => $user->permissions
-                        ->pluck('name')->values(),
-                    'all_permissions' => $user->getAllPermissions()
-                        ->pluck('name')->values(),
-                ],
-            ]);
+            // 4. إزالة صلاحية مباشرة.
+            Route::delete('/users/{user}/permissions', function (
+                Request $request,
+                User $user
+            ) {
+                $data = $request->validate([
+                    'permission' => [
+                        'required',
+                        'string',
+                        Rule::exists('permissions', 'name')
+                            ->where('guard_name', 'web'),
+                    ],
+                ]);
+
+                $permission = Permission::findByName(
+                    $data['permission'],
+                    'web'
+                );
+
+                $user->revokePermissionTo($permission);
+                $user->unsetRelation('permissions');
+
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'Direct permission removed successfully.',
+                    'data' => [
+                        'user_id' => $user->id,
+                        'direct_permissions' => $user->permissions
+                            ->pluck('name')->values(),
+                        'all_permissions' => $user->getAllPermissions()
+                            ->pluck('name')->values(),
+                    ],
+                ]);
+            });
         });
 
         // 5. إدارة تقييمات المتاجر والموردين
@@ -282,26 +281,19 @@ Route::middleware('auth:sanctum')
         Route::get('/reviews/engineers', [\App\Http\Controllers\Api\Rating\EngineerRatingController::class, 'index']);
         Route::patch('/reviews/engineers/{rating}/toggle-approval', [\App\Http\Controllers\Api\Rating\EngineerRatingController::class, 'toggleApproval']);
 
+        // 8. عمليات الإدارة (بديل آمن لمسارات خادم Nuxt القديمة server/api/admin)
+        $ops = \App\Http\Controllers\Api\Admin\AdminOperationsController::class;
+
+        Route::get('/orders', [$ops, 'orders'])->middleware('permission:orders.manage-status');
+        Route::patch('/orders/{order}/status', [$ops, 'updateOrderStatus'])->middleware('permission:orders.manage-status');
+
+        Route::get('/finance/payments', [$ops, 'payments'])->middleware('permission:order-payments.verify');
+        Route::get('/finance/payouts', [$ops, 'payouts'])->middleware('permission:store-payouts.manage');
+        Route::get('/finance/stats', [$ops, 'financeStats'])->middleware('permission:store-payouts.manage');
+        Route::get('/wallet-providers', [$ops, 'walletProviders'])->middleware('permission:wallet-providers.manage');
+        Route::get('/permissions/search-users', [$ops, 'searchUsers'])->middleware('permission:users.manage');
+
         // 7. إدارة الإشعارات والبث العام
         Route::get('/notifications', [\App\Http\Controllers\Api\Notification\AdminNotificationController::class, 'index']);
         Route::post('/notifications/broadcast', [\App\Http\Controllers\Api\Notification\AdminNotificationController::class, 'broadcast']);
-
-        // 8. عمليات كانت تمر عبر مسارات Nuxt غير المحمية (server/api/admin/*)
-        Route::controller(\App\Http\Controllers\Admin\AdminOperationsController::class)->group(function () {
-            Route::get('/orders', 'orders');
-            Route::post('/orders/{order}/status', 'updateOrderStatus');
-
-            Route::get('/finance/payments', 'payments');
-            Route::post('/finance/payments/{payment}/status', 'updatePaymentStatus')->whereNumber('payment');
-            Route::get('/finance/payouts', 'payouts');
-            Route::post('/finance/payouts/{payout}/status', 'updatePayoutStatus')->whereNumber('payout');
-            Route::get('/finance/stats', 'financeStats');
-            Route::get('/finance/settings', 'settings');
-            Route::post('/finance/settings', 'updateSettings');
-
-            Route::get('/wallet-providers', 'walletProviders');
-            Route::post('/wallet-providers', 'storeWalletProvider');
-            Route::put('/wallet-providers/{walletProvider}', 'updateWalletProvider')->whereNumber('walletProvider');
-            Route::delete('/wallet-providers/{walletProvider}', 'destroyWalletProvider')->whereNumber('walletProvider');
-        });
     });

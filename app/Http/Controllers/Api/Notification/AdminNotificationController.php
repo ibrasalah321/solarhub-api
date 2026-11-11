@@ -41,6 +41,7 @@ class AdminNotificationController extends Controller
                 'read_recipients'
             )
             ->latest('created_at')
+            ->limit(200)
             ->get();
 
         $items = $notifications->map(function ($notification) {
@@ -111,54 +112,47 @@ class AdminNotificationController extends Controller
                 'email' => $user->email,
             ];
         } else {
-            $query = User::query()->where('is_active', true);
-            if ($validated['audience'] === 'customers') {
-                $query->role('customer');
-            } elseif ($validated['audience'] === 'suppliers') {
-                $query->role('supplier');
-            } elseif ($validated['audience'] === 'engineers') {
-                $query->role('engineer');
-            }
-
-            $recipients = $query->get();
-
-            if ($recipients->isEmpty()) {
-                $fallbackQuery = User::query();
-                if ($validated['audience'] === 'customers') {
-                    $fallbackQuery->role('customer');
-                } elseif ($validated['audience'] === 'suppliers') {
-                    $fallbackQuery->role('supplier');
-                } elseif ($validated['audience'] === 'engineers') {
-                    $fallbackQuery->role('engineer');
-                }
-                $recipients = $fallbackQuery->get();
-            }
+            // جدول users لا يحتوي is_active؛ الحالة في عمود status.
+            $recipients = User::query()
+                ->where('status', 'active')
+                ->when($validated['audience'] === 'customers', fn ($q) => $q->role('customer'))
+                ->when($validated['audience'] === 'suppliers', fn ($q) => $q->role('supplier'))
+                ->when($validated['audience'] === 'engineers', fn ($q) => $q->role('engineer'))
+                ->get(['id']);
         }
 
         $eventId = (string) Str::uuid();
         $senderId = $request->user()?->id;
+        $now = now();
+        $payload = json_encode([
+            'title' => $validated['title'],
+            'body' => $validated['content'],
+            'audience' => $validated['audience'],
+            'target_user' => $targetUser,
+            'action_url' => null,
+        ], JSON_UNESCAPED_UNICODE);
 
-        foreach ($recipients as $recipient) {
-            Notification::create([
-                'type' => 'broadcast',
-                'notifiable_type' => User::class,
-                'notifiable_id' => $recipient->id,
-                'sender_id' => $senderId,
-                'sender_type' => $senderId ? 'user' : 'system',
-                'template_code' => null,
-                'event_id' => $eventId,
-                'event_key' => 'broadcast:' . $eventId,
-                'dedupe_key' => hash('sha256', implode('|', [User::class, $recipient->id, 'broadcast', $eventId])),
-                'data' => [
-                    'title' => $validated['title'],
-                    'body' => $validated['content'],
-                    'audience' => $validated['audience'],
-                    'target_user' => $targetUser,
-                    'action_url' => null,
-                ],
-                'read_at' => null,
-            ]);
-        }
+        // إدراج دفعي (500 سجل في الاستعلام) بدل استعلام لكل مستخدم.
+        \Illuminate\Support\Facades\DB::transaction(function () use ($recipients, $eventId, $senderId, $now, $payload) {
+            foreach ($recipients->chunk(500) as $chunk) {
+                Notification::query()->insert($chunk->map(fn ($recipient) => [
+                    'id' => (string) Str::uuid(),
+                    'type' => 'broadcast',
+                    'notifiable_type' => User::class,
+                    'notifiable_id' => $recipient->id,
+                    'sender_id' => $senderId,
+                    'sender_type' => $senderId ? 'user' : 'system',
+                    'template_code' => null,
+                    'event_id' => $eventId,
+                    'event_key' => 'broadcast:'.$eventId,
+                    'dedupe_key' => hash('sha256', implode('|', [User::class, $recipient->id, 'broadcast', $eventId])),
+                    'data' => $payload,
+                    'read_at' => null,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ])->values()->all());
+            }
+        });
 
         return $this->successResponse([
             'id' => $eventId,

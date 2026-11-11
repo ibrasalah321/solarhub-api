@@ -52,6 +52,7 @@ class ServiceRequestResource extends JsonResource
                     return [
                         'id' => $offer->id,
                         'engineer_id' => $offer->engineer_id,
+                        'engineer_name' => $offer->relationLoaded('engineer') ? $offer->engineer?->user?->name : null,
                         'proposed_cost' => $offer->proposed_cost,
                         'execution_time_days' => $offer->execution_time_days,
                         'technical_proposal' => $offer->technical_proposal,

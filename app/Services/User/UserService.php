@@ -60,7 +60,18 @@ class UserService
 
         unset($data['current_password']);
 
+        $passwordChanged = isset($data['password']);
+
         $user->update($data);
+
+        // عند تغيير كلمة المرور: إنهاء كل الجلسات الأخرى والإبقاء على الجلسة الحالية فقط.
+        if ($passwordChanged) {
+            $token = $user->currentAccessToken();
+            $currentId = $token instanceof \Laravel\Sanctum\PersonalAccessToken ? $token->id : null;
+            $user->tokens()
+                ->when($currentId, fn ($q) => $q->where('id', '!=', $currentId))
+                ->delete();
+        }
 
         return $user->fresh(['governorate', 'store', 'engineerProfile']);
     }

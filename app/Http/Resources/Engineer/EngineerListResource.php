@@ -11,20 +11,26 @@ class EngineerListResource extends JsonResource
     {
         $storage = app(\App\Services\SupabaseStorageService::class);
 
+        // بيانات التواصل والسيرة الذاتية والإحداثيات لا تُعرض للعامة:
+        // فقط للمهندس نفسه أو للإدارة.
+        $viewer = $request->user() ?? $request->user('sanctum');
+        $canSeePrivate = $viewer && ($viewer->id === $this->user_id || $viewer->hasRole('admin'));
+
         return [
             'id' => $this->id,
             'name' => $this->user?->name,
-            'email' => $this->user?->email,
-            'phone' => $this->user?->phone,
+            'email' => $this->when($canSeePrivate, $this->user?->email),
+            'phone' => $this->when($canSeePrivate, $this->user?->phone),
             'governorate_id' => $this->user?->governorate_id,
             'governorate' => $this->user?->governorate?->name_ar ?? $this->user?->governorate?->name_en ?? $this->user?->governorate?->name,
             'governorate_name' => $this->user?->governorate?->name_ar ?? $this->user?->governorate?->name_en ?? $this->user?->governorate?->name,
-            'location_coordinates' => $this->user?->default_coordinates,
+            'location_coordinates' => $this->when($canSeePrivate, $this->user?->default_coordinates),
             'license_number' => $this->license_number,
             'years_of_experience' => $this->years_of_experience,
             'bio' => $this->bio,
             'profile_photo_path' => $this->profile_photo_path,
-            'cv_url' => $this->cv_path ? $storage->temporaryPrivateUrl($this->cv_path, 30) : null,
+            'profile_photo_url' => $storage->publicUrl($this->profile_photo_path),
+            'cv_url' => $this->when($canSeePrivate, fn () => $this->cv_path ? $storage->temporaryPrivateUrl($this->cv_path, 30) : null),
             'approval_status' => $this->approval_status,
             'approved_at' => $this->approved_at,
             'created_at' => $this->created_at,

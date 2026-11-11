@@ -11,8 +11,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/specializations', [SpecializationController::class, 'index']);
 Route::get('/specializations/{specialization}', [SpecializationController::class, 'show']);
 
-// إدارة التخصصات: للمدير فقط
-Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
+Route::middleware(['auth:sanctum', 'permission:catalog.manage'])->group(function () {
     Route::post('/specializations', [SpecializationController::class, 'store']);
     Route::put('/specializations/{specialization}', [SpecializationController::class, 'update']);
     Route::patch('/specializations/{specialization}', [SpecializationController::class, 'update']);
@@ -37,6 +36,7 @@ Route::middleware(['auth:sanctum', 'role:engineer'])
         Route::get('/onboarding/status', [EngineerOnboardingController::class, 'status']);
 
         Route::get('/profile', [EngineerProfileController::class, 'myProfile']);
+        Route::get('/dashboard/stats', [EngineerProfileController::class, 'dashboardStats']);
 
         Route::put('/profile', [EngineerProfileController::class, 'update'])
             ->middleware('permission:engineer-profiles.update');

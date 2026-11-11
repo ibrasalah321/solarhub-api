@@ -74,6 +74,8 @@ class OrderStoreService
                 'delivered_at' => $newStatus === 'delivered' ? now() : $orderStore->delivered_at,
             ]);
 
+            $this->syncParentOrderStatus($orderStore);
+
             return $orderStore->load([
                 'order.customer',
                 'order.governorate',
@@ -101,12 +103,46 @@ class OrderStoreService
             'Only a delivered order can be confirmed as completed.'
         );
 
-        $orderStore->update([
-            'status' => 'completed',
-            'customer_confirmed_at' => now(),
-        ]);
+        DB::transaction(function () use ($orderStore) {
+            $orderStore->update([
+                'status' => 'completed',
+                'customer_confirmed_at' => now(),
+            ]);
+
+            $this->syncParentOrderStatus($orderStore);
+        });
 
         return $orderStore->load(['order.customer', 'items.storeProduct.masterProduct']);
+    }
+
+    /**
+     * تحديث حالة الطلب الرئيسي بناءً على حالات طلباته الفرعية.
+     * (سابقاً كانت حالة الطلب الرئيسي تبقى pending للأبد.)
+     */
+    public function syncParentOrderStatus(OrderStore $orderStore): void
+    {
+        $order = $orderStore->order()->lockForUpdate()->first();
+
+        if (! $order || $order->status === 'cancelled') {
+            return;
+        }
+
+        $statuses = $order->orderStores()->pluck('status');
+        $closed = ['cancelled', 'rejected'];
+
+        if ($statuses->every(fn ($s) => in_array($s, $closed, true))) {
+            $newStatus = 'cancelled';
+        } elseif ($statuses->every(fn ($s) => in_array($s, ['completed', ...$closed], true))) {
+            $newStatus = 'completed';
+        } elseif ($statuses->contains(fn ($s) => in_array($s, ['accepted', 'shipped', 'delivered', 'completed'], true))) {
+            $newStatus = 'processing';
+        } else {
+            $newStatus = 'pending';
+        }
+
+        if ($order->status !== $newStatus) {
+            $order->update(['status' => $newStatus]);
+        }
     }
 
     private function restoreStock(int $storeProductId, int $quantity): void

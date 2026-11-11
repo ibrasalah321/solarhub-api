@@ -33,7 +33,6 @@ class AdminOnlyEndpointsTest extends TestCase
             'all payments' => ['/api/admin/finance/payments'],
             'all payouts' => ['/api/admin/finance/payouts'],
             'finance stats' => ['/api/admin/finance/stats'],
-            'finance settings' => ['/api/admin/finance/settings'],
             'wallet providers' => ['/api/admin/wallet-providers'],
         ];
     }

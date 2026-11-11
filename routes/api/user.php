@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:sanctum')->group(function () {
     Route::put('/my/profile', [UserController::class, 'updateProfile']);
     Route::delete('/my/account', [UserController::class, 'destroy']);
+    Route::post('/my/sessions/revoke-others', [UserController::class, 'revokeOtherSessions']);
 
     Route::middleware('permission:users.manage')->group(function () {
         Route::get('/users', [UserController::class, 'index']);

@@ -12,6 +12,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // حد عام لعدد الطلبات على الـ API (المعرّف في AppServiceProvider باسم api)
+        $middleware->throttleApi();
+
+        // حد أعلى لـ per_page في كل الطلبات
+        $middleware->api(append: [
+            \App\Http\Middleware\ClampPagination::class,
+        ]);
+
         $middleware->alias([
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,

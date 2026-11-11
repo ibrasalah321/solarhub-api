@@ -106,11 +106,15 @@ class WalletProviderController extends Controller
      */
     public function destroy(WalletProvider $walletProvider)
     {
-        abort_if(
-            $walletProvider->userWallets()->exists() || $walletProvider->orderPayments()->exists(),
-            409,
-            'This wallet provider is already in use and cannot be deleted.'
-        );
+        // مزود مستخدم في محافظ أو دفعات سابقة: يُعطَّل بدل الحذف للحفاظ على السجلات المالية.
+        if ($walletProvider->userWallets()->exists() || $walletProvider->orderPayments()->exists()) {
+            $walletProvider->update(['is_active' => false]);
+
+            return $this->successResponse(
+                new WalletProviderResource($walletProvider),
+                'المحفظة مرتبطة بمعاملات سابقة، تم تعطيلها بدلاً من الحذف للحفاظ على سلامة القيود المالية.'
+            );
+        }
 
         $this->storageService->deletePublic($walletProvider->logo_path);
 

@@ -158,25 +158,49 @@ class RegistrationService
                 $existingUser->restore();
             }
 
-            // 3. Clean up any conflicting unverified/trashed user holding this phone number
+            // 3. رقم الجوال محجوز لحساب آخر؟
+            //    - حساب غير مفعّل ولا يملك أي بيانات: نحذفه (تسجيل مهجور).
+            //    - حساب مفعّل محذوف حذفاً ناعماً أو له بيانات: لا نحذف شيئاً نهائياً،
+            //      بل نرفض التسجيل (سابقاً كان يُحذف نهائياً مع متجره ومحافظه).
             $conflictingUsers = User::withTrashed()
                 ->where('phone', $phone)
-                ->where(function ($q) {
-                    $q->whereNull('email_verified_at')
-                        ->orWhereNotNull('deleted_at');
-                })
                 ->when($existingUser, fn ($q) => $q->where('id', '!=', $existingUser->id))
                 ->get();
 
             foreach ($conflictingUsers as $cUser) {
+                $isAbandonedSignup = $cUser->email_verified_at === null
+                    && ! $cUser->store()->exists()
+                    && ! $cUser->orders()->exists()
+                    && ! $cUser->serviceRequests()->exists()
+                    && ! $cUser->userWallets()->exists();
+
+                if (! $isAbandonedSignup) {
+                    throw ValidationException::withMessages([
+                        'phone' => ['رقم الجوال مرتبط بحساب سابق، يرجى التواصل مع الدعم أو استخدام رقم آخر.'],
+                    ]);
+                }
+
                 $cUser->emailOtps()->delete();
+                $cUser->engineerProfile()?->delete();
                 $cUser->forceDelete();
+            }
+
+            // البريد مستخدم في حساب مفعّل محذوف حذفاً ناعماً → خطأ واضح بدل خطأ 500 من قيد unique
+            $trashedVerifiedEmail = User::onlyTrashed()
+                ->where('email', $email)
+                ->whereNotNull('email_verified_at')
+                ->exists();
+
+            if ($trashedVerifiedEmail) {
+                throw ValidationException::withMessages([
+                    'email' => ['البريد الإلكتروني مرتبط بحساب محذوف، يرجى التواصل مع الدعم لاستعادته.'],
+                ]);
             }
 
             // 4. Resolve governorate_id if available
             $govId = $data['governorate_id'] ?? null;
             if (! $govId && ! empty($data['governorate'])) {
-                $govName = trim($data['governorate']);
+                $govName = str_replace(['%', '_'], ['\\%', '\\_'], trim($data['governorate']));
                 $gov = Governorate::query()
                     ->where('name_ar', 'like', "%{$govName}%")
                     ->orWhere('name_en', 'like', "%{$govName}%")

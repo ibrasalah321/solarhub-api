@@ -63,6 +63,7 @@ class OrderService
             $storeProductIds = $cart->items->pluck('store_product_id')->all();
 
             $storeProducts = StoreProduct::query()
+                ->with(['store:id,approval_status', 'masterProduct:id,title'])
                 ->whereIn('id', $storeProductIds)
                 ->lockForUpdate()
                 ->get()
@@ -75,6 +76,18 @@ class OrderService
                     $storeProduct && $storeProduct->status === 'active',
                     422,
                     'One of the products in your cart is no longer available.'
+                );
+
+                abort_unless(
+                    $storeProduct->store?->approval_status === 'approved',
+                    422,
+                    'One of the products in your cart belongs to a store that is not currently approved.'
+                );
+
+                abort_if(
+                    $cartItem->quantity < (int) $storeProduct->min_order_qty,
+                    422,
+                    "The minimum order quantity for '{$storeProduct->masterProduct?->title}' is {$storeProduct->min_order_qty}."
                 );
 
                 abort_if(
@@ -149,16 +162,23 @@ class OrderService
             'You are not allowed to cancel this order.'
         );
 
-        $order->loadMissing('orderStores.items');
-
-        abort_if(
-            $order->orderStores->contains(fn ($orderStore) => $orderStore->status !== 'pending'),
-            422,
-            'This order can no longer be cancelled because at least one store has already started processing it.'
-        );
-
         return DB::transaction(function () use ($order) {
-            foreach ($order->orderStores as $orderStore) {
+            // قفل الطلبات الفرعية داخل المعاملة لمنع التعارض مع قبول المورد في نفس اللحظة.
+            $orderStores = $order->orderStores()->with('items')->lockForUpdate()->get();
+
+            abort_if(
+                $orderStores->contains(fn ($orderStore) => $orderStore->status !== 'pending'),
+                422,
+                'This order can no longer be cancelled because at least one store has already started processing it.'
+            );
+
+            abort_if(
+                $order->payments()->where('status', 'verified')->exists(),
+                422,
+                'لا يمكن إلغاء طلب له دفعة مؤكدة. يرجى التواصل مع الدعم لترتيب الاسترداد.'
+            );
+
+            foreach ($orderStores as $orderStore) {
                 foreach ($orderStore->items as $item) {
                     $this->restoreStock($item->store_product_id, $item->quantity);
                 }

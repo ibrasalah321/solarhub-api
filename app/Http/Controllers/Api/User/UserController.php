@@ -41,6 +41,14 @@ class UserController extends Controller
      */
     public function store(CreateAdminUserRequest $request)
     {
+        // إنشاء حساب مدير جديد مسموح للمدير العام فقط،
+        // وليس لأي مشرف مقيّد يملك users.manage (وإلا يستطيع رفع صلاحياته بنفسه).
+        abort_unless(
+            $request->user()?->isSuperAdmin(),
+            403,
+            'إنشاء حسابات المدراء متاح للمدير العام فقط.'
+        );
+
         $user = $this->userService->createAdmin($request->validated());
 
         return $this->successResponse(
@@ -82,6 +90,14 @@ class UserController extends Controller
      */
     public function updateStatus(UpdateUserStatusRequest $request, User $user)
     {
+        abort_if($request->user()->id === $user->id, 422, 'لا يمكنك تغيير حالة حسابك بنفسك.');
+
+        abort_if(
+            $user->hasRole('admin') && ! $request->user()->isSuperAdmin(),
+            403,
+            'تغيير حالة حسابات المدراء متاح للمدير العام فقط.'
+        );
+
         $user = $this->userService->updateStatus($user, $request->validated('status'));
 
         return $this->successResponse(
@@ -98,5 +114,24 @@ class UserController extends Controller
         $this->userService->deleteAccount($request->user());
 
         return $this->successResponse(null, 'Account deleted successfully.');
+    }
+
+    /**
+     * إنهاء كل الجلسات الأخرى (حذف كل التوكنات ما عدا التوكن الحالي).
+     */
+    public function revokeOtherSessions(Request $request)
+    {
+        $user = $request->user();
+        $token = $user->currentAccessToken();
+        $currentId = $token instanceof \Laravel\Sanctum\PersonalAccessToken ? $token->id : null;
+
+        $revoked = $user->tokens()
+            ->when($currentId, fn ($q) => $q->where('id', '!=', $currentId))
+            ->delete();
+
+        return $this->successResponse(
+            ['revoked_count' => $revoked],
+            'تم إنهاء كافة الجلسات الأخرى بنجاح.'
+        );
     }
 }
