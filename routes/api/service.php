@@ -3,6 +3,8 @@
 use App\Http\Controllers\Api\ServiceRequest\OfferController;
 use App\Http\Controllers\Api\ServiceRequest\ServiceRequestController;
 use App\Http\Controllers\Api\ServiceRequest\ServiceTypeController;
+use App\Http\Controllers\Api\ServiceRequest\ServiceRequestLifecycleController;
+use App\Http\Controllers\Api\Rating\EngineerRatingController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/service-types', [ServiceTypeController::class, 'index']);
@@ -108,4 +110,21 @@ Route::middleware('auth:sanctum')->group(function () {
         'permission:offers.accept',
         'can:accept,offer',
     ]);
+
+    // دورة حياة الطلب بعد قبول العرض: المهندس المُرسى عليه يبدأ ثم يبلغ بالإنهاء، والعميل يؤكد الاكتمال.
+    Route::post('/service-requests/{serviceRequest}/start', [ServiceRequestLifecycleController::class, 'start'])
+        ->whereNumber('serviceRequest')
+        ->middleware(['role:engineer', 'approved', 'can:start,serviceRequest']);
+
+    Route::post('/service-requests/{serviceRequest}/mark-done', [ServiceRequestLifecycleController::class, 'markDone'])
+        ->whereNumber('serviceRequest')
+        ->middleware(['role:engineer', 'approved', 'can:markDone,serviceRequest']);
+
+    Route::post('/service-requests/{serviceRequest}/confirm-completion', [ServiceRequestLifecycleController::class, 'confirmCompletion'])
+        ->whereNumber('serviceRequest')
+        ->middleware(['role:customer', 'can:confirmCompletion,serviceRequest']);
+
+    // العميل يقيّم المهندس مرة واحدة بعد اكتمال الطلب
+    Route::post('/engineer-ratings', [EngineerRatingController::class, 'store'])
+        ->middleware('role:customer');
 });

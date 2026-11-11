@@ -47,6 +47,21 @@ class ServiceRequestResource extends JsonResource
 
             'status' => $this->status,
 
+            // دورة حياة الطلب بعد قبول العرض
+            'started_at' => $this->started_at,
+            'engineer_completed_at' => $this->engineer_completed_at,
+            'completed_at' => $this->completed_at,
+
+            // تقييم العميل للمهندس (إن وُجد) حتى تعرف الواجهة هل تُظهر زر التقييم
+            'rating' => $this->whenLoaded('rating', function () {
+                return $this->rating ? [
+                    'id' => $this->rating->id,
+                    'rating' => $this->rating->rating,
+                    'comment' => $this->rating->comment,
+                    'created_at' => $this->rating->created_at,
+                ] : null;
+            }),
+
             'offers' => $this->whenLoaded('offers', function () {
                 return $this->offers->map(function ($offer) {
                     return [
