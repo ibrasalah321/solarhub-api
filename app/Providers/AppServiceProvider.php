@@ -42,8 +42,9 @@ class AppServiceProvider extends ServiceProvider
 
         ResetPassword::createUrlUsing(
             function (User $user, string $token): string {
+                // صفحة الواجهة هي /auth/reset-password (تقرأ token و email من الرابط)
                 return rtrim((string) config('app.frontend_url'), '/')
-                    . '/reset-password?'
+                    . '/auth/reset-password?'
                     . http_build_query([
                         'token' => $token,
                         'email' => $user->getEmailForPasswordReset(),
