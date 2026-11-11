@@ -40,8 +40,7 @@ class UpdateProfileRequest extends FormRequest
             'default_coordinates' => [
                 'sometimes',
                 'nullable',
-                'string',
-                'max:255',
+                new \App\Rules\GeographyPoint(),
             ],
 
             'current_password' => [

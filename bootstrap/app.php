@@ -36,4 +36,18 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (\Illuminate\Http\Request $request) => $request->is('api/*') || $request->expectsJson()
         );
+
+        // أخطاء قاعدة البيانات في الـ API ترجع رسالة عامة دائماً (حتى مع APP_DEBUG=true):
+        // نص QueryException يحتوي جملة SQL وعنوان الخادم وقيم الحقول (مثل hash كلمة المرور).
+        // التفاصيل تبقى في storage/logs عبر report() الافتراضي.
+        $exceptions->render(function (\Illuminate\Database\QueryException $e, \Illuminate\Http\Request $request) {
+            if ($request->is('api/*')) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'حدث خطأ في الخادم، يرجى المحاولة لاحقاً.',
+                ], 500);
+            }
+
+            return null;
+        });
     })->create();

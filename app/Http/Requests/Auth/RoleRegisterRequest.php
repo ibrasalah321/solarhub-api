@@ -74,8 +74,8 @@ class RoleRegisterRequest extends FormRequest
             // Common geographical and address fields
             'governorate_id' => ['nullable', 'integer', 'exists:governorates,id'],
             'governorate' => ['nullable', 'string', 'max:100'],
-            'default_coordinates' => ['nullable', 'string', 'max:255'],
-            'location_coordinates' => ['nullable', 'string', 'max:255'],
+            'default_coordinates' => ['nullable', new \App\Rules\GeographyPoint()],
+            'location_coordinates' => ['nullable', new \App\Rules\GeographyPoint()],
             'address_details' => ['nullable', 'string', 'max:500'],
         ];
 
