@@ -18,7 +18,6 @@ class StoreStorePayoutRequest extends FormRequest
                 'required',
                 'integer',
                 'exists:order_stores,id',
-                'unique:store_payouts,order_store_id',
             ],
 
             'user_wallet_id' => [

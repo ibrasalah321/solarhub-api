@@ -289,6 +289,7 @@ Route::middleware('auth:sanctum')
 
         Route::get('/finance/payments', [$ops, 'payments'])->middleware('permission:order-payments.verify');
         Route::get('/finance/payouts', [$ops, 'payouts'])->middleware('permission:store-payouts.manage');
+        Route::get('/finance/payouts/eligible', [$ops, 'payoutEligible'])->middleware('permission:store-payouts.manage');
         Route::get('/finance/stats', [$ops, 'financeStats'])->middleware('permission:store-payouts.manage');
         Route::get('/wallet-providers', [$ops, 'walletProviders'])->middleware('permission:wallet-providers.manage');
         Route::get('/permissions/search-users', [$ops, 'searchUsers'])->middleware('permission:users.manage');

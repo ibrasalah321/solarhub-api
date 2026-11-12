@@ -158,6 +158,45 @@ class AdminOperationsController extends Controller
     }
 
     /**
+     * الطلبات الفرعية المؤهلة لإنشاء مستحقات المورد: أكّد العميل استلامها (completed)
+     * ولا توجد لها مستحقات بعد، أو فشلت مستحقاتها السابقة (يُسمح بإعادة المحاولة).
+     * مع محافظ المورد الفعّالة ليختار المدير منها (رقم الحساب مقنّع).
+     */
+    public function payoutEligible()
+    {
+        $rows = \App\Models\OrderStore::query()
+            ->where('status', 'completed')
+            ->where(fn ($q) => $q->whereDoesntHave('payout')
+                ->orWhereHas('payout', fn ($p) => $p->where('status', 'failed')))
+            ->with([
+                'order:id,order_number',
+                'store:id,user_id,company_name',
+                'store.user.userWallets' => fn ($w) => $w->where('is_active', true)->with('walletProvider:id,name_ar'),
+                'payout:id,order_store_id,status',
+            ])
+            ->orderByDesc('customer_confirmed_at')
+            ->limit(self::MAX_ROWS)
+            ->get()
+            ->map(fn ($os) => [
+                'order_store_id' => $os->id,
+                'order_number' => $os->order?->order_number,
+                'store_name' => $os->store?->company_name,
+                'subtotal' => (float) $os->subtotal,
+                'completed_at' => $os->customer_confirmed_at,
+                'previous_payout_failed' => $os->payout?->status === 'failed',
+                'wallets' => ($os->store?->user?->userWallets ?? collect())->map(fn ($w) => [
+                    'id' => $w->id,
+                    'provider' => $w->walletProvider?->name_ar,
+                    'account_name' => $w->account_name,
+                    'account_last4' => substr((string) $w->account_number, -4),
+                    'is_default' => (bool) $w->is_default,
+                ])->values(),
+            ]);
+
+        return $this->successResponse($rows, 'Eligible order-stores retrieved successfully.');
+    }
+
+    /**
      * الملخص المالي العام.
      */
     public function financeStats()
