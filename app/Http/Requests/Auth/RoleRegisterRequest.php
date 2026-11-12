@@ -51,13 +51,15 @@ class RoleRegisterRequest extends FormRequest
                 'string',
                 'email:rfc',
                 'max:150',
-                'unique:users,email',
+                // الحسابات المفعّلة فقط تمنع التسجيل. من سجّل ولم يفعّل بريده يستطيع التسجيل مجدداً:
+                // RegistrationService يعيد استخدام حسابه غير المفعّل ويرسل رمزاً جديداً.
+                Rule::unique('users', 'email')->where(fn ($q) => $q->whereNotNull('email_verified_at')->whereNull('deleted_at')),
             ],
             'phone' => [
                 'required',
                 'string',
                 'regex:/^\+?[0-9]{7,20}$/',
-                'unique:users,phone',
+                Rule::unique('users', 'phone')->where(fn ($q) => $q->whereNotNull('email_verified_at')->whereNull('deleted_at')),
             ],
             'password' => [
                 'required',
@@ -125,6 +127,8 @@ class RoleRegisterRequest extends FormRequest
     {
         return [
             'phone.regex' => 'The phone number must contain between 7 and 20 digits.',
+            'email.unique' => 'البريد الإلكتروني مسجل ومفعل بالفعل، يرجى تسجيل الدخول مباشرة.',
+            'phone.unique' => 'رقم الجوال مسجل ومفعل بالفعل بحساب آخر.',
             'role.prohibited' => 'The account role is fixed by the registration endpoint.',
             'cv.required' => 'يرجى إرفاق ملف السيرة الذاتية بصيغة PDF.',
             'cv.mimes' => 'يجب أن يكون ملف السيرة الذاتية للمهندس بصيغة PDF فقط.',

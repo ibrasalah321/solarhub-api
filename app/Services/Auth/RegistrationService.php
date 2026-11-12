@@ -106,7 +106,7 @@ class RegistrationService
     }
 
     /**
-     * @return array{user: User, plain_code: string}
+     * @return array{user: User, plain_code: string, replaced_files: list<string>}
      */
     private function createAccount(
         array $data,
@@ -194,7 +194,32 @@ class RegistrationService
 
             $coords = $data['default_coordinates'] ?? $data['location_coordinates'] ?? null;
 
+            // ملفات طلب الانضمام السابقة التي سيستبدلها التسجيل الجديد؛ تُحذف من التخزين بعد نجاح المعاملة.
+            $replacedFiles = [];
+
             if ($existingUser) {
+                // إعادة التسجيل بنوع حساب مختلف عن طلب انضمام قائم (متجر/ملف مهندس) كانت ستترك طلباً معلّقاً
+                // يتيماً في قائمة المراجعة لدى الإدارة، لذلك نرفضها برسالة واضحة بدل تغيير الدور بصمت.
+                $existingUser->loadMissing(['store', 'engineerProfile']);
+                $pendingAs = match (true) {
+                    $existingUser->store !== null && $role !== 'supplier' => 'مورد',
+                    $existingUser->engineerProfile !== null && $role !== 'engineer' => 'مهندس',
+                    default => null,
+                };
+
+                if ($pendingAs !== null) {
+                    throw ValidationException::withMessages([
+                        'email' => ["هذا البريد مسجّل مسبقاً كحساب {$pendingAs} ولم يُفعّل بعد. فعّل الحساب برمز التحقق، أو سجّل بنفس نوع الحساب."],
+                    ]);
+                }
+
+                if ($createApplication && $uploadedPath !== null) {
+                    $replacedFiles = array_values(array_filter([
+                        $role === 'supplier' ? $existingUser->store?->commercial_file_path : null,
+                        $role === 'engineer' ? $existingUser->engineerProfile?->cv_path : null,
+                    ], fn ($path) => $path && $path !== $uploadedPath));
+                }
+
                 $existingUser->update([
                     'name' => $data['name'],
                     'phone' => $phone,
@@ -266,15 +291,25 @@ class RegistrationService
             return [
                 'user' => $user,
                 'plain_code' => $otpData['plain_code'],
+                'replaced_files' => $replacedFiles,
             ];
         });
     }
 
     /**
-     * @param  array{user: User, plain_code: string}  $result
+     * @param  array{user: User, plain_code: string, replaced_files?: list<string>}  $result
      */
     private function finishRegistration(array $result): User
     {
+        // المعاملة نجحت: احذف ملفات طلب الانضمام القديمة التي استُبدلت (لا نُفشل التسجيل إن تعذّر الحذف).
+        foreach ($result['replaced_files'] ?? [] as $path) {
+            try {
+                $this->storageService->deletePrivate($path);
+            } catch (Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("Could not delete replaced registration file {$path}: {$e->getMessage()}");
+            }
+        }
+
         $this->otpService->sendOtpEmail(
             $result['user'],
             $result['plain_code']
