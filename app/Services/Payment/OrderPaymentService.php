@@ -47,10 +47,13 @@ class OrderPaymentService
         );
 
         return DB::transaction(function () use ($order, $data, $receipt) {
+            // نقفل صف الطلب الرئيسي لتسلسل الدفعات المتزامنة على نفس الطلب.
+            // (Postgres لا يسمح بـ FOR UPDATE مع دوال التجميع مثل SUM، فلا نقفل استعلام المجموع نفسه.)
+            \App\Models\Order::query()->whereKey($order->id)->lockForUpdate()->first();
+
             // المبلغ لا يتجاوز المتبقي من إجمالي الطلب (بعد الدفعات المؤكدة والمعلّقة).
             $alreadyCovered = (float) $order->payments()
                 ->whereIn('status', ['pending', 'verified'])
-                ->lockForUpdate()
                 ->sum('amount');
             $remaining = round((float) $order->total_amount - $alreadyCovered, 2);
 
