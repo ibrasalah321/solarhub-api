@@ -142,7 +142,11 @@ class NotificationService
                 $eventKey,
             ]));
 
-            $notification = Notification::query()->firstOrCreate(
+            // خارج المعاملات (مسار sendAfterCommit): createOrFirst يُدرج مباشرة (استعلام واحد) ولا يقرأ إلا عند
+            // تعارض dedupe_key (قيد unique). داخل معاملة يحتاج savepoint إضافياً، فنُبقي firstOrCreate.
+            $method = DB::transactionLevel() === 0 ? 'createOrFirst' : 'firstOrCreate';
+
+            $notification = Notification::query()->{$method}(
                 ['dedupe_key' => $dedupeKey],
                 [
                     'type' => $template->type,
