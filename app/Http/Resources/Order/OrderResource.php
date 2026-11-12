@@ -32,6 +32,16 @@ class OrderResource extends JsonResource
             'delivery_address' => $this->delivery_address,
             'delivery_coordinates' => $this->delivery_coordinates,
             'status' => $this->status,
+
+            // ملخص الدفع وقائمة الدفعات (للعميل: رفع إيصال جديد إذا لم يُدفع أو رُفضت الدفعة)
+            'payment' => $this->whenLoaded('payments', fn () => $this->paymentSummary()),
+            'payments' => $this->whenLoaded('payments', fn () => $this->payments->sortByDesc('id')->values()->map(fn ($p) => [
+                'id' => $p->id,
+                'amount' => $p->amount,
+                'status' => $p->status,
+                'transaction_reference' => $p->transaction_reference,
+                'created_at' => $p->created_at,
+            ])),
             'created_at' => $this->created_at,
         ];
     }

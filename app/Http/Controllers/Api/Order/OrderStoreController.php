@@ -47,6 +47,7 @@ class OrderStoreController extends Controller
                 $orderStore->load([
                     'order.customer',
                     'order.governorate',
+                    'order.payments',
                     'items.storeProduct.masterProduct.images',
                     'items.storeProduct.masterProduct.brand',
                     'payout',

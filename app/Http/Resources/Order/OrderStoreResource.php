@@ -27,6 +27,8 @@ class OrderStoreResource extends JsonResource
                     'email' => $this->order->customer?->email,
                 ],
                 'created_at' => $this->order->created_at,
+                // حالة الدفع للطلب الرئيسي: الشحن غير مسموح قبل أن تصبح paid
+                'payment' => $this->order->relationLoaded('payments') ? $this->order->paymentSummary() : null,
             ]),
 
             'store' => $this->whenLoaded('store', fn () => [

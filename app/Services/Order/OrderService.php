@@ -21,6 +21,7 @@ class OrderService
             ->with([
                 'governorate',
                 'orderStores.store',
+                'payments',
                 'orderStores.items.storeProduct.masterProduct',
             ])
             ->latest()
@@ -36,6 +37,7 @@ class OrderService
             'customer',
             'governorate',
             'orderStores.store',
+            'payments',
             'orderStores.items.storeProduct.masterProduct',
             'orderStores.payout',
         ]);
@@ -144,6 +146,7 @@ class OrderService
                 'customer',
                 'governorate',
                 'orderStores.store',
+            'payments',
                 'orderStores.items.storeProduct.masterProduct',
             ]);
         });
