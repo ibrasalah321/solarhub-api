@@ -3,6 +3,7 @@
 namespace App\Services\Order;
 
 use App\Models\Order;
+use App\Models\QuoteRequest;
 use App\Models\StoreProduct;
 use App\Models\User;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -149,6 +150,77 @@ class OrderService
             'payments',
                 'orderStores.items.storeProduct.masterProduct',
             ]);
+        });
+    }
+
+    /**
+     * إنشاء طلب شراء من عرض سعر مقبول: منتج واحد، بالكمية والسعر المتفق عليهما مع المورد
+     * (وليس بسعر القائمة الحالي). يُستدعى داخل معاملة قبول العرض.
+     */
+    public function createFromQuote(User $customer, QuoteRequest $quote, array $data): Order
+    {
+        return DB::transaction(function () use ($customer, $quote, $data) {
+            $storeProduct = StoreProduct::query()
+                ->with(['store.user', 'masterProduct:id,title'])
+                ->lockForUpdate()
+                ->find($quote->store_product_id);
+
+            abort_unless(
+                $storeProduct && in_array($storeProduct->status, ['active', 'out_of_stock'], true),
+                422,
+                'المنتج لم يعد متاحاً لدى المورد، لا يمكن إنشاء الطلب.'
+            );
+
+            abort_unless(
+                $storeProduct->store?->approval_status === 'approved',
+                422,
+                'متجر المورد غير معتمد حالياً، لا يمكن إنشاء الطلب.'
+            );
+
+            $quantity = (int) $quote->quantity;
+
+            abort_if(
+                $quantity > $storeProduct->stock_quantity,
+                422,
+                "الكمية المتاحة حالياً لدى المورد {$storeProduct->stock_quantity} فقط، أقل من كمية العرض ({$quantity})."
+            );
+
+            $unitPrice = round((float) $quote->offered_unit_price, 2);
+            $total = round($unitPrice * $quantity, 2);
+
+            $order = Order::create([
+                'order_number' => $this->generateOrderNumber(),
+                'customer_id' => $customer->id,
+                'delivery_governorate_id' => $data['delivery_governorate_id'] ?? null,
+                'delivery_address' => $data['delivery_address'],
+                'delivery_coordinates' => $data['delivery_coordinates'] ?? null,
+                'total_amount' => $total,
+                'status' => 'pending',
+            ]);
+
+            $orderStore = $order->orderStores()->create([
+                'store_id' => $storeProduct->store_id,
+                'subtotal' => $total,
+                'status' => 'pending',
+                'notes' => 'طلب ناتج عن عرض السعر #RFQ-'.str_pad((string) $quote->id, 4, '0', STR_PAD_LEFT),
+            ]);
+
+            $orderStore->items()->create([
+                'store_product_id' => $storeProduct->id,
+                'unit_price' => $unitPrice,
+                'quantity' => $quantity,
+                'total_price' => $total,
+            ]);
+
+            $this->deductStock($storeProduct, $quantity);
+
+            // نربط العلاقات المحمّلة أصلاً بدل إعادة تحميلها (كل استعلام ~0.3 ثانية مع القاعدة البعيدة).
+            // إشعار إنشاء الطلب يحتاج orderStores.store.user فقط.
+            $orderStore->setRelation('store', $storeProduct->store);
+            $order->setRelation('orderStores', $order->orderStores()->getRelated()->newCollection([$orderStore]));
+            $order->setRelation('customer', $customer);
+
+            return $order;
         });
     }
 

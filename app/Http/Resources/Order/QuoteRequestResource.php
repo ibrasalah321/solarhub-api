@@ -52,6 +52,8 @@ class QuoteRequestResource extends JsonResource
             'store_notes' => $this->store_notes,
             'responded_at' => $this->responded_at,
             'accepted_at' => $this->accepted_at,
+            'order_id' => $this->order_id,
+            'order_number' => $this->whenLoaded('order', fn () => $this->order?->order_number),
             'created_at' => $this->created_at,
         ];
     }

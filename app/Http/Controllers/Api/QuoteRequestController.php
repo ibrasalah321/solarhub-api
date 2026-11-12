@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Order\AcceptQuoteRequestRequest;
 use App\Http\Requests\Order\RespondQuoteRequestRequest;
 use App\Http\Requests\Order\StoreQuoteRequestRequest;
 use App\Http\Resources\Order\QuoteRequestResource;
@@ -102,22 +103,21 @@ class QuoteRequestController extends Controller
     /**
      * Customer accepts the store's offer.
      */
-    public function accept(Request $request, QuoteRequest $quoteRequest)
+    public function accept(AcceptQuoteRequestRequest $request, QuoteRequest $quoteRequest)
     {
-        $quoteRequest = $this->quoteRequestService->acceptQuote(
+        [$quoteRequest, $order] = $this->quoteRequestService->acceptQuote(
             $request->user(),
-            $quoteRequest
+            $quoteRequest,
+            $request->validated()
         );
-        $quoteRequest->loadMissing('storeProduct.store.user');
 
-        $this->notifications->quoteDecision(
-            $request->user(),
-            $quoteRequest
-        );
+        // إشعار واحد للحدث: المورد يتلقى «طلب شراء جديد» (وملاحظات الطلب تذكر رقم العرض)،
+        // بدل إشعار «قُبل العرض» إضافي لنفس الحدث.
+        $this->notifications->orderCreated($request->user(), $order);
 
         return $this->successResponse(
             new QuoteRequestResource($quoteRequest),
-            'Quote request accepted successfully.'
+            'تم قبول العرض وإنشاء طلب الشراء '.$order->order_number.'. ارفع إيصال الدفع من صفحة طلباتك.'
         );
     }
 
