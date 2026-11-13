@@ -18,8 +18,8 @@ class PublicLandingController extends Controller
 
     /**
      * Unified, high-performance cached showcase bundle for the public landing page.
-     * Caches lightweight pre-resolved primitive arrays in local cache (file/redis)
-     * and randomizes them in-memory per request to eliminate remote database roundtrips.
+     * Caches the entire pool of active records, and returns a randomized selection
+     * on every request to ensure diverse visibility across all products, stores, and engineers.
      */
     public function showcase()
     {
@@ -48,9 +48,8 @@ class PublicLandingController extends Controller
                 ])
                 ->where('status', 'active')
                 ->whereHas('store', fn ($q) => $q->where('approval_status', 'approved'))
-                ->latest()
-                ->take(60)
                 ->get();
+        });
 
         // 2. Cache the approved stores pool (6 hours)
         $storesPool = \App\Support\PublicCache::remember('all_public_landing_stores_pool', function () {
@@ -78,9 +77,8 @@ class PublicLandingController extends Controller
                     'ratings as approved_ratings_count' => fn ($query) => $query->whereRaw('is_approved IS TRUE'),
                     'storeProducts as store_products_count' => fn ($query) => $query->where('status', 'active'),
                 ])
-                ->latest()
-                ->take(24)
                 ->get();
+        });
 
         // 3. Cache the approved engineers pool (6 hours)
         $engineersPool = \App\Support\PublicCache::remember('all_public_landing_engineers_pool', function () {
@@ -110,25 +108,17 @@ class PublicLandingController extends Controller
                 ->withCount([
                     'ratings' => fn ($query) => $query->whereRaw('is_approved IS TRUE'),
                 ])
-                ->latest()
-                ->take(24)
                 ->get();
-
-            // Store pure pre-resolved arrays (clean JSON, 0 Eloquent overhead, ~25KB total)
-            return [
-                'products' => StoreProductResource::collection($products)->resolve(),
-                'stores' => StoreResource::collection($stores)->resolve(),
-                'engineers' => EngineerListResource::collection($engineers)->resolve(),
-                'totalProducts' => max(StoreProduct::where('status', 'active')->count(), 80),
-                'totalStores' => max(Store::where('approval_status', 'approved')->count(), 12),
-                'totalEngineers' => max(EngineerProfile::where('approval_status', 'approved')->count(), 14),
-            ];
         });
 
-        // 4. Randomize selection in memory (0ms latency, zero database hit)
-        $randomProducts = collect($cachedBundle['products'])->shuffle()->take(36)->values()->all();
-        $randomStores = collect($cachedBundle['stores'])->shuffle()->take(12)->values()->all();
-        $randomEngineers = collect($cachedBundle['engineers'])->shuffle()->take(12)->values()->all();
+        // 4. Randomize selection from total pools on each call
+        $randomProducts = $productsPool->shuffle()->take(36);
+        $randomStores = $storesPool->shuffle()->take(12);
+        $randomEngineers = $engineersPool->shuffle()->take(12);
+
+        $totalProductsCount = $productsPool->count();
+        $totalStoresCount = $storesPool->count();
+        $totalEngineersCount = $engineersPool->count();
 
         $data = [
             'products' => StoreProductResource::collection($randomProducts)->resolve(),
