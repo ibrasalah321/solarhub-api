@@ -5,6 +5,7 @@ namespace App\Services\Notification;
 use App\Models\Notification;
 use App\Models\NotificationTemplate;
 use App\Models\User;
+use App\Support\NotificationRecipients;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -134,7 +135,8 @@ class NotificationService
         $eventId = (string) Str::uuid();
         $created = new Collection;
 
-        foreach (collect($recipients)->unique('id') as $recipient) {
+        // NOTIFY_ONLY_TEST_ACCOUNTS: في التطوير تصل الإشعارات للحسابات التجريبية فقط
+        foreach (NotificationRecipients::filter($recipients, $templateCode)->unique('id') as $recipient) {
             $dedupeKey = hash('sha256', implode('|', [
                 User::class,
                 $recipient->id,

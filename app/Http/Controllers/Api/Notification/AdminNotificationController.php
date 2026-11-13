@@ -118,8 +118,11 @@ class AdminNotificationController extends Controller
                 ->when($validated['audience'] === 'customers', fn ($q) => $q->role('customer'))
                 ->when($validated['audience'] === 'suppliers', fn ($q) => $q->role('supplier'))
                 ->when($validated['audience'] === 'engineers', fn ($q) => $q->role('engineer'))
-                ->get(['id']);
+                ->get(['id', 'email']);
         }
+
+        // NOTIFY_ONLY_TEST_ACCOUNTS: في التطوير لا يصل البث إلا للحسابات التجريبية
+        $recipients = \App\Support\NotificationRecipients::filter($recipients, 'broadcast');
 
         $eventId = (string) Str::uuid();
         $senderId = $request->user()?->id;
