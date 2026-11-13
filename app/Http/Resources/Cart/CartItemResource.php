@@ -9,7 +9,7 @@ class CartItemResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        $storeProduct = $this->whenLoaded('storeProduct');
+        $storeProduct = $this->relationLoaded('storeProduct') ? $this->storeProduct : null; // whenLoaded() يُرجع MissingValue وليس null
 
         return [
             'id' => $this->id,
