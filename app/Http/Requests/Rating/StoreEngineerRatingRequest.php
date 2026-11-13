@@ -14,6 +14,8 @@ class StoreEngineerRatingRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'service_request_id' => ['required', 'integer', 'exists:service_requests,id'],
+
             'rating' => [
                 'required',
                 'integer',

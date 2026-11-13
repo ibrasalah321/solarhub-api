@@ -23,9 +23,9 @@ class PublicLandingController extends Controller
      */
     public function showcase()
     {
-        $cachedBundle = Cache::remember('public_landing_showcase_light_bundle', now()->addMinutes(60), function () {
-            // 1. Fetch active approved products with relationships (capped for speed)
-            $products = StoreProduct::query()
+        // 1. Cache the entire active approved products pool (6 hours)
+        $productsPool = \App\Support\PublicCache::remember('all_public_landing_products_pool', function () {
+            return StoreProduct::query()
                 ->select([
                     'id',
                     'master_product_id',
@@ -52,8 +52,9 @@ class PublicLandingController extends Controller
                 ->take(60)
                 ->get();
 
-            // 2. Fetch approved stores
-            $stores = Store::query()
+        // 2. Cache the approved stores pool (6 hours)
+        $storesPool = \App\Support\PublicCache::remember('all_public_landing_stores_pool', function () {
+            return Store::query()
                 ->select([
                     'id',
                     'user_id',
@@ -75,13 +76,15 @@ class PublicLandingController extends Controller
                 ->withAvg('ratings', 'rating')
                 ->withCount([
                     'ratings as approved_ratings_count' => fn ($query) => $query->whereRaw('is_approved IS TRUE'),
+                    'storeProducts as store_products_count' => fn ($query) => $query->where('status', 'active'),
                 ])
                 ->latest()
                 ->take(24)
                 ->get();
 
-            // 3. Fetch approved engineers
-            $engineers = EngineerProfile::query()
+        // 3. Cache the approved engineers pool (6 hours)
+        $engineersPool = \App\Support\PublicCache::remember('all_public_landing_engineers_pool', function () {
+            return EngineerProfile::query()
                 ->select([
                     'id',
                     'user_id',
@@ -128,13 +131,14 @@ class PublicLandingController extends Controller
         $randomEngineers = collect($cachedBundle['engineers'])->shuffle()->take(12)->values()->all();
 
         $data = [
-            'products' => $randomProducts,
-            'stores' => $randomStores,
-            'engineers' => $randomEngineers,
+            'products' => StoreProductResource::collection($randomProducts)->resolve(),
+            'stores' => StoreResource::collection($randomStores)->resolve(),
+            'engineers' => EngineerListResource::collection($randomEngineers)->resolve(),
+            // أعداد حقيقية فقط: منتجات نشطة من متاجر معتمدة، متاجر معتمدة، مهندسون معتمدون
             'stats' => [
-                'totalProducts' => $cachedBundle['totalProducts'],
-                'totalStores' => $cachedBundle['totalStores'],
-                'totalEngineers' => $cachedBundle['totalEngineers'],
+                'totalProducts' => $totalProductsCount,
+                'totalStores' => $totalStoresCount,
+                'totalEngineers' => $totalEngineersCount,
             ],
         ];
 

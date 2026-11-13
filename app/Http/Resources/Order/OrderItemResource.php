@@ -9,7 +9,9 @@ class OrderItemResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        $storeProduct = $this->whenLoaded('storeProduct');
+        // whenLoaded() يُرجع MissingValue (وليس null) عند عدم تحميل العلاقة، و?-> لا يتوقف عنده، فكان
+        // أي رد بلا storeProduct (مثل إلغاء العميل للطلب) ينهار بخطأ 500 بعد أن يكون الإلغاء قد تم.
+        $storeProduct = $this->relationLoaded('storeProduct') ? $this->storeProduct : null;
         $master = $storeProduct?->masterProduct;
         $imagePath = $master?->images?->first()?->image_path;
         $imageUrl = $imagePath ? app(\App\Services\SupabaseStorageService::class)->publicUrl($imagePath) : null;

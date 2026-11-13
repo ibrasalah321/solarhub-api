@@ -16,7 +16,10 @@ class OtpService
 {
     public function generate(User $user): array
     {
-        $this->invalidate($user);
+        // حساب أُنشئ للتو في هذا الطلب لا يملك رموزاً سابقة لإبطالها (توفير استعلام).
+        if (! $user->wasRecentlyCreated) {
+            $this->invalidate($user);
+        }
 
         $otpLength = $this->otpLength();
         $maximumValue = (10 ** $otpLength) - 1;

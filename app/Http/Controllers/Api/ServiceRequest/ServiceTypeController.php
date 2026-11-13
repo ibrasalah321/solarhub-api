@@ -19,15 +19,21 @@ class ServiceTypeController extends Controller
 
     public function index()
     {
-        $serviceTypes = ServiceType::query()
-            ->when(!request()->boolean('all') && !request()->user()?->hasRole('admin'), function ($query) {
-                $query->where('is_active', true);
-            })
-            ->orderBy('id', 'asc')
-            ->get();
+        $includeInactive = request()->boolean('all') || (bool) request()->user()?->hasRole('admin');
+
+        $serviceTypes = \App\Support\PublicCatalogCache::remember(
+            \App\Support\PublicCatalogCache::SERVICE_TYPES,
+            fn () => ServiceTypeResource::collection(
+                ServiceType::query()
+                    ->when(! $includeInactive, fn ($query) => $query->where('is_active', true))
+                    ->orderBy('id', 'asc')
+                    ->get()
+            )->resolve(),
+            $includeInactive ? 'all' : 'default'
+        );
 
         return $this->successResponse(
-            ServiceTypeResource::collection($serviceTypes),
+            $serviceTypes,
             'Service types retrieved successfully.'
         );
     }

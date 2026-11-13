@@ -19,7 +19,7 @@ class StoreProductService
         $perPage = (int) ($filters['per_page'] ?? request()->input('per_page', 100));
         $cacheKey = 'public_store_products_' . md5(json_encode($filters) . "_{$page}_{$perPage}");
 
-        return \Illuminate\Support\Facades\Cache::remember($cacheKey, now()->addHours(12), function () use ($filters, $perPage) {
+        return \App\Support\PublicCache::remember($cacheKey, function () use ($filters, $perPage) {
             return StoreProduct::query()
                 ->select([
                     'id',

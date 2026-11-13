@@ -20,14 +20,19 @@ class CategoryController extends Controller
 
     public function index()
     {
-        $categories = Category::query()
-            ->whereNull('parent_id')
-            ->with('children')
-            ->withCount('masterProducts')
-            ->get();
+        $categories = \App\Support\PublicCatalogCache::remember(
+            \App\Support\PublicCatalogCache::CATEGORIES,
+            fn () => CategoryResource::collection(
+                Category::query()
+                    ->whereNull('parent_id')
+                    ->with('children')
+                    ->withCount('masterProducts')
+                    ->get()
+            )->resolve()
+        );
 
         return $this->successResponse(
-            CategoryResource::collection($categories),
+            $categories,
             'Categories retrieved successfully.'
         );
     }

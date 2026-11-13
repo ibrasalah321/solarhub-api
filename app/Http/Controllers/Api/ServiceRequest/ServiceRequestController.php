@@ -68,6 +68,7 @@ class ServiceRequestController extends Controller
             'serviceType',
             'governorate',
             'offers.engineer.user',
+            'rating',
         ]);
 
         return $this->successResponse(

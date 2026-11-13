@@ -2,13 +2,17 @@
 
 namespace App\Services\Order;
 
+use App\Models\Order;
 use App\Models\QuoteRequest;
 use App\Models\StoreProduct;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 
 class QuoteRequestService
 {
+    public function __construct(private readonly OrderService $orderService) {}
+
     private const RELATIONS = [
         'customer',
         'storeProduct.masterProduct.images',
@@ -98,29 +102,48 @@ class QuoteRequestService
     }
 
     /**
-     * Customer accepts a store's offer.
+     * العميل يقبل عرض المورد: يُنشأ طلب شراء فوراً بالكمية والسعر المتفق عليهما، ويُربط بالعرض.
+     * الطلب بعدها يمر بالمسار المعتاد (رفع إيصال الدفع ← اعتماد الإدارة ← الشحن).
+     * العروض التي قُبلت قبل هذه الميزة (accepted بدون طلب) يمكن تحويلها بنفس المسار.
      *
-     * NOTE: acceptance only records the customer's intent on the quote request
-     * itself. The current schema has no link between quote_requests and
-     * cart_items/order_items, so converting an accepted quote into an actual
-     * cart item or order at the negotiated price is not yet implemented here.
+     * @return array{0: QuoteRequest, 1: Order}
      */
-    public function acceptQuote(User $customer, QuoteRequest $quoteRequest): QuoteRequest
+    public function acceptQuote(User $customer, QuoteRequest $quoteRequest, array $delivery): array
     {
         $this->ensureCustomerOwnership($customer, $quoteRequest);
 
-        abort_unless(
-            $quoteRequest->status === 'responded',
-            422,
-            'Only a responded quote request can be accepted.'
-        );
+        return DB::transaction(function () use ($customer, $quoteRequest, $delivery) {
+            // قفل العرض لمنع إنشاء طلبين من نفس العرض بنقرتين متزامنتين.
+            $quote = QuoteRequest::query()->lockForUpdate()->findOrFail($quoteRequest->id);
 
-        $quoteRequest->update([
-            'status' => 'accepted',
-            'accepted_at' => now(),
-        ]);
+            abort_unless(
+                $quote->status === 'responded' || ($quote->status === 'accepted' && ! $quote->order_id),
+                422,
+                $quote->order_id
+                    ? 'تم إنشاء طلب شراء من هذا العرض مسبقاً.'
+                    : 'لا يمكن قبول هذا العرض إلا بعد رد المورد بالسعر.'
+            );
 
-        return $quoteRequest->load(self::RELATIONS);
+            abort_if(
+                $quote->offered_unit_price === null || (float) $quote->offered_unit_price <= 0,
+                422,
+                'العرض لا يحتوي سعراً صالحاً من المورد.'
+            );
+
+            $order = $this->orderService->createFromQuote($customer, $quote, $delivery);
+
+            $quote->update([
+                'status' => 'accepted',
+                'accepted_at' => $quote->accepted_at ?? now(),
+                'order_id' => $order->id,
+            ]);
+
+            // العميل والطلب متاحان مسبقاً؛ نحمّل فقط علاقات المنتج التي تعرضها الاستجابة.
+            $quote->setRelation('customer', $customer);
+            $quote->setRelation('order', $order);
+
+            return [$quote->loadMissing([...self::RELATIONS, 'storeProduct.store.user']), $order];
+        });
     }
 
     /**

@@ -95,4 +95,25 @@ class EngineerProfileController extends Controller
             'Engineer profile updated successfully.'
         );
     }
+
+    /**
+     * أرقام لوحة المهندس في طلب واحد خفيف (بدل جلب 3 قوائم كاملة فقط لعدّها).
+     */
+    public function dashboardStats(Request $request)
+    {
+        $engineer = $this->engineerProfileService->getMyProfileLite($request->user());
+
+        if (! $engineer) {
+            return $this->errorResponse('Engineer profile not found.', null, 404);
+        }
+
+        return $this->successResponse([
+            'pending_offers_count' => $engineer->offers()->where('status', 'pending')->count(),
+            'accepted_offers_count' => $engineer->offers()->where('status', 'accepted')->count(),
+            'available_requests_count' => \App\Models\ServiceRequest::query()
+                ->where('status', 'open_for_bids')
+                ->count(),
+            'portfolio_items_count' => $engineer->portfolioItems()->count(),
+        ], 'Engineer dashboard stats retrieved successfully.');
+    }
 }

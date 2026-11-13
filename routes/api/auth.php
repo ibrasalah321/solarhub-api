@@ -19,9 +19,6 @@ use Illuminate\Support\Facades\Route;
 // Guest-only: registration, email verification, login, password reset.
 Route::middleware('guest')->group(function () {
     Route::post('/auth/register', [RegistrationController::class, 'register']);
-    Route::post('/auth/customer/register', [RegistrationController::class, 'registerCustomer']);
-    Route::post('/auth/engineer/register', [RegistrationController::class, 'registerEngineer']);
-    Route::post('/auth/supplier/register', [RegistrationController::class, 'registerSupplier']);
 
     foreach (['customer', 'engineer', 'supplier'] as $accountRole) {
         Route::post(
@@ -49,7 +46,8 @@ Route::middleware('guest')->group(function () {
     Route::post('/auth/forgot-password', [PasswordController::class, 'forgotPassword'])
         ->middleware('throttle:forgot-password');
 
-    Route::post('/auth/reset-password', [PasswordController::class, 'resetPassword']);
+    Route::post('/auth/reset-password', [PasswordController::class, 'resetPassword'])
+        ->middleware('throttle:forgot-password');
 });
 
 // Authenticated via Sanctum token.

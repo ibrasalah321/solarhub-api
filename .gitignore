@@ -32,3 +32,9 @@ start-local-db.bat
 stop-local-db.bat
 start_local_postgres.bat
 stop_local_postgres.bat
+
+# أرشيفات ونسخ احتياطية (كان solarhub-api.zip مرفوعاً وفيه ملف .env كامل)
+*.zip
+*.rar
+*.7z
+tempCodeRunnerFile.*

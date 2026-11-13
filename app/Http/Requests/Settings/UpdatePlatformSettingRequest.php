@@ -51,11 +51,12 @@ class UpdatePlatformSettingRequest extends FormRequest
                 'max:512',
             ],
 
+            // المنصة تعمل بالريال اليمني فقط (كل الأسعار في الواجهة معروضة بـ ر.ي)
             'currency' => [
                 'sometimes',
                 'required',
                 'string',
-                'max:10',
+                'in:YER',
             ],
 
             'is_maintenance_mode' => [

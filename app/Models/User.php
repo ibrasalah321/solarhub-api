@@ -139,25 +139,44 @@ class User extends Authenticatable
     }
 
     /**
+     * المدير العام: يملك دور admin ولم تُحدَّد له صلاحيات مباشرة تقيّده
+     * (أو هو الحساب رقم 1 لتجنب قفل النظام).
+     */
+    public function isSuperAdmin(): bool
+    {
+        if (! $this->hasRole('admin')) {
+            return false;
+        }
+
+        return $this->id === 1 || ! $this->hasDirectPermissionsDefined();
+    }
+
+    /**
+     * هل للمستخدم صلاحيات مباشرة في model_has_permissions؟
+     */
+    public function hasDirectPermissionsDefined(): bool
+    {
+        return $this->relationLoaded('permissions')
+            ? $this->permissions->isNotEmpty()
+            : $this->permissions()->exists();
+    }
+
+    /**
      * Determine if the user has (one of) the given permission(s).
      *
-     * Rules:
-     * 1. User ID 1 is always the unrestricted Super Admin with full access.
-     * 2. If the user has direct permissions defined in `model_has_permissions`,
-     *    those direct permissions take precedence and strictly control access.
-     * 3. Otherwise, inherit permissions from assigned roles.
+     * القواعد:
+     * 1. المدير العام (isSuperAdmin) يملك كل الصلاحيات.
+     * 2. المشرف (دور admin) الذي حُدِّدت له صلاحيات مباشرة مقيّد بها فقط.
+     * 3. بقية المستخدمين (عميل/مورد/مهندس): صلاحيات الدور + الصلاحيات المباشرة معاً
+     *    (سلوك Spatie الافتراضي). سابقاً كانت أي صلاحية مباشرة تُلغي كل صلاحيات الدور.
      */
     public function hasPermissionTo($permission, $guardName = null): bool
     {
-        if ($this->id === 1 && $this->hasRole('admin')) {
+        if ($this->isSuperAdmin()) {
             return true;
         }
 
-        $hasDirect = $this->relationLoaded('permissions')
-            ? $this->permissions->isNotEmpty()
-            : $this->permissions()->exists();
-
-        if ($hasDirect) {
+        if ($this->hasRole('admin') && $this->hasDirectPermissionsDefined()) {
             return $this->hasDirectPermission($permission);
         }
 
@@ -165,27 +184,20 @@ class User extends Authenticatable
     }
 
     /**
-     * Get all effective permissions for this user.
+     * Get all effective permissions for this user (نفس قواعد hasPermissionTo).
      */
     public function getAllPermissions(): \Illuminate\Support\Collection|\Illuminate\Database\Eloquent\Collection
     {
-        static $cachedSuperAdminPerms = null;
-        if ($this->id === 1 && $this->hasRole('admin')) {
-            return $cachedSuperAdminPerms ??= \Spatie\Permission\Models\Permission::query()
+        if ($this->isSuperAdmin()) {
+            return \Spatie\Permission\Models\Permission::query()
                 ->where('guard_name', 'web')
                 ->get();
         }
 
-        $direct = $this->relationLoaded('permissions')
-            ? $this->permissions
-            : $this->permissions()->get();
-
-        if ($direct->isNotEmpty()) {
-            return $direct;
-        }
-
-        if ($this->relationLoaded('roles')) {
-            return $this->roles->flatMap(fn ($role) => $role->relationLoaded('permissions') ? $role->permissions : ($role->permissions ?? collect()))->unique('id')->values();
+        if ($this->hasRole('admin') && $this->hasDirectPermissionsDefined()) {
+            return $this->relationLoaded('permissions')
+                ? $this->permissions
+                : $this->permissions()->get();
         }
 
         return $this->spatieGetAllPermissions();

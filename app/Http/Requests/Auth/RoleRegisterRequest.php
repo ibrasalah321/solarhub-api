@@ -51,13 +51,15 @@ class RoleRegisterRequest extends FormRequest
                 'string',
                 'email:rfc',
                 'max:150',
-                'unique:users,email',
+                // الحسابات المفعّلة فقط تمنع التسجيل. من سجّل ولم يفعّل بريده يستطيع التسجيل مجدداً:
+                // RegistrationService يعيد استخدام حسابه غير المفعّل ويرسل رمزاً جديداً.
+                Rule::unique('users', 'email')->where(fn ($q) => $q->whereNotNull('email_verified_at')->whereNull('deleted_at')),
             ],
             'phone' => [
                 'required',
                 'string',
                 'regex:/^\+?[0-9]{7,20}$/',
-                'unique:users,phone',
+                Rule::unique('users', 'phone')->where(fn ($q) => $q->whereNotNull('email_verified_at')->whereNull('deleted_at')),
             ],
             'password' => [
                 'required',
@@ -74,8 +76,8 @@ class RoleRegisterRequest extends FormRequest
             // Common geographical and address fields
             'governorate_id' => ['nullable', 'integer', 'exists:governorates,id'],
             'governorate' => ['nullable', 'string', 'max:100'],
-            'default_coordinates' => ['nullable', 'string', 'max:255'],
-            'location_coordinates' => ['nullable', 'string', 'max:255'],
+            'default_coordinates' => ['nullable', new \App\Rules\GeographyPoint()],
+            'location_coordinates' => ['nullable', new \App\Rules\GeographyPoint()],
             'address_details' => ['nullable', 'string', 'max:500'],
         ];
 
@@ -125,6 +127,8 @@ class RoleRegisterRequest extends FormRequest
     {
         return [
             'phone.regex' => 'The phone number must contain between 7 and 20 digits.',
+            'email.unique' => 'البريد الإلكتروني مسجل ومفعل بالفعل، يرجى تسجيل الدخول مباشرة.',
+            'phone.unique' => 'رقم الجوال مسجل ومفعل بالفعل بحساب آخر.',
             'role.prohibited' => 'The account role is fixed by the registration endpoint.',
             'cv.required' => 'يرجى إرفاق ملف السيرة الذاتية بصيغة PDF.',
             'cv.mimes' => 'يجب أن يكون ملف السيرة الذاتية للمهندس بصيغة PDF فقط.',

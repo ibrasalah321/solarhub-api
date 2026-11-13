@@ -10,7 +10,7 @@ class QuoteRequestResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        $storeProduct = $this->whenLoaded('storeProduct');
+        $storeProduct = $this->relationLoaded('storeProduct') ? $this->storeProduct : null; // whenLoaded() يُرجع MissingValue وليس null
         $master = $storeProduct?->masterProduct;
         $imagePath = $master?->images?->first()?->image_path;
         $imageUrl = $imagePath ? app(SupabaseStorageService::class)->publicUrl($imagePath) : null;
@@ -52,6 +52,8 @@ class QuoteRequestResource extends JsonResource
             'store_notes' => $this->store_notes,
             'responded_at' => $this->responded_at,
             'accepted_at' => $this->accepted_at,
+            'order_id' => $this->order_id,
+            'order_number' => $this->whenLoaded('order', fn () => $this->order?->order_number),
             'created_at' => $this->created_at,
         ];
     }

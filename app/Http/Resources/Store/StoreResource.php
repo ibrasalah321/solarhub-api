@@ -11,7 +11,7 @@ class StoreResource extends JsonResource
     public function toArray(Request $request): array
     {
         $storage = app(SupabaseStorageService::class);
-        $user = $request->user();
+        $user = $request->user() ?? $request->user('sanctum');
         $isOwnerOrAdmin = $user && ($user->id === $this->user_id || $user->hasRole('admin'));
 
         return [
@@ -33,6 +33,8 @@ class StoreResource extends JsonResource
 
             'average_rating' => round((float) ($this->ratings_avg_rating ?? 0), 1),
             'ratings_count' => (int) ($this->approved_ratings_count ?? 0),
+            // يظهر فقط عندما يحمّله الاستعلام (withCount)، مثل صفحة الهبوط
+            'store_products_count' => $this->whenHas('store_products_count'),
 
             'commercial_registry' => $this->when($isOwnerOrAdmin, $this->commercial_registry),
             'tax_number' => $this->when($isOwnerOrAdmin, $this->tax_number),

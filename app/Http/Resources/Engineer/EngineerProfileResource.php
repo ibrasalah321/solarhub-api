@@ -12,7 +12,10 @@ class EngineerProfileResource extends JsonResource
     {
         $storage = app(SupabaseStorageService::class);
         $photoUrl = $this->profile_photo_path ? $storage->publicUrl($this->profile_photo_path) : null;
-        $cvUrl = $this->cv_path ? $storage->publicUrl($this->cv_path) : null;
+        // السيرة الذاتية محفوظة في الحاوية الخاصة → رابط مؤقت، ويظهر فقط للمهندس نفسه أو للإدارة.
+        $viewer = $request->user() ?? $request->user('sanctum');
+        $canSeePrivate = $viewer && ($viewer->id === $this->user_id || $viewer->hasRole('admin'));
+        $cvUrl = ($canSeePrivate && $this->cv_path) ? $storage->temporaryPrivateUrl($this->cv_path, 30) : null;
 
         return [
             'id' => $this->id,
@@ -20,8 +23,8 @@ class EngineerProfileResource extends JsonResource
             'user' => [
                 'id' => $this->user?->id,
                 'name' => $this->user?->name,
-                'email' => $this->user?->email,
-                'phone' => $this->user?->phone,
+                'email' => $canSeePrivate ? $this->user?->email : null,
+                'phone' => $canSeePrivate ? $this->user?->phone : null,
                 'governorate_id' => $this->user?->governorate_id,
                 'governorate' => $this->user?->governorate?->name_ar ?? $this->user?->governorate?->name_en,
             ],
@@ -35,7 +38,7 @@ class EngineerProfileResource extends JsonResource
             'profile_photo_path' => $this->profile_photo_path,
             'profile_photo_url' => $photoUrl,
 
-            'cv_path' => $this->cv_path,
+            'cv_path' => $canSeePrivate ? $this->cv_path : null,
             'cv_url' => $cvUrl,
 
             'approval_status' => $this->approval_status,

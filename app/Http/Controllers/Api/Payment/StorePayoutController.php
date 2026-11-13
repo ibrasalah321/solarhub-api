@@ -128,4 +128,67 @@ class StorePayoutController extends Controller
             'Payout status updated successfully.'
         );
     }
+
+    /**
+     * المورد يطلب صرف مستحقاته: يُرسل إشعار للإدارة لإنشاء سجلات الصرف.
+     * (كانت الواجهة تستدعي هذا المسار وهو غير موجود فيفشل طلب السحب دائماً.)
+     */
+    public function requestWithdrawal(Request $request)
+    {
+        $data = $request->validate([
+            'amount' => ['required', 'numeric', 'min:1'],
+            'notes' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $user = $request->user();
+        $store = $user->store;
+
+        abort_unless($store, 404, 'Store profile not found.');
+
+        // المتاح للطلب = الطلبات الفرعية المكتملة التي لم يُنشأ لها سجل صرف بعد.
+        $available = (float) \App\Models\OrderStore::query()
+            ->where('store_id', $store->id)
+            ->where('status', 'completed')
+            ->whereDoesntHave('payout', fn ($q) => $q->where('status', '!=', 'failed'))
+            ->sum('subtotal');
+
+        abort_if(
+            round((float) $data['amount'], 2) > round($available, 2),
+            422,
+            'المبلغ المطلوب أكبر من المستحقات المتاحة للصرف ('.number_format($available, 2).').'
+        );
+
+        $eventId = (string) \Illuminate\Support\Str::uuid();
+        $now = now();
+        $admins = \App\Models\User::role('admin')->where('status', 'active')->get(['id']);
+
+        \App\Models\Notification::query()->insert($admins->map(fn ($admin) => [
+            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'type' => 'payout_request',
+            'notifiable_type' => \App\Models\User::class,
+            'notifiable_id' => $admin->id,
+            'sender_id' => $user->id,
+            'sender_type' => 'user',
+            'template_code' => null,
+            'event_id' => $eventId,
+            'event_key' => 'payout_request:'.$eventId,
+            'dedupe_key' => hash('sha256', implode('|', [$admin->id, 'payout_request', $eventId])),
+            'data' => json_encode([
+                'title' => 'طلب صرف مستحقات',
+                'body' => "المتجر {$store->company_name} يطلب صرف مبلغ ".number_format((float) $data['amount'], 2)
+                    .($data['notes'] ?? null ? ' — ملاحظات: '.$data['notes'] : ''),
+                'action_url' => '/admin/finance/payouts',
+                'store_id' => $store->id,
+                'amount' => (float) $data['amount'],
+            ], JSON_UNESCAPED_UNICODE),
+            'read_at' => null,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ])->values()->all());
+
+        return $this->successResponse([
+            'requested_amount' => (float) $data['amount'],
+            'available_amount' => round($available, 2),
+        ], 'تم إرسال طلب صرف المستحقات للإدارة.', 201);
+    }
 }

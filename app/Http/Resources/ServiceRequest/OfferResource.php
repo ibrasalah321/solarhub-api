@@ -27,6 +27,10 @@ class OfferResource extends JsonResource
                     'governorate' => $this->serviceRequest->governorate?->name_ar ?? $this->serviceRequest->governorate?->name_en ?? '',
                     'system_capacity_estimate' => $this->serviceRequest->system_capacity_estimate,
                     'status' => $this->serviceRequest->status,
+                    // لدورة حياة الطلب عند المهندس صاحب العرض المقبول
+                    'started_at' => $this->serviceRequest->started_at,
+                    'engineer_completed_at' => $this->serviceRequest->engineer_completed_at,
+                    'completed_at' => $this->serviceRequest->completed_at,
                 ];
             }),
 

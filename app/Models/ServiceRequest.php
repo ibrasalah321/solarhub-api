@@ -24,6 +24,9 @@ class ServiceRequest extends Model
         'description',
         'status',
         'location_coordinates',
+        'started_at',
+        'engineer_completed_at',
+        'completed_at',
     ];
 
     protected function casts(): array
@@ -34,6 +37,9 @@ class ServiceRequest extends Model
             'governorate_id' => 'integer',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
+            'started_at' => 'datetime',
+            'engineer_completed_at' => 'datetime',
+            'completed_at' => 'datetime',
         ];
     }
 
@@ -55,6 +61,12 @@ class ServiceRequest extends Model
     public function offers(): HasMany
     {
         return $this->hasMany(Offer::class, 'service_request_id');
+    }
+
+    /** العرض المقبول (المهندس المُرسى عليه الطلب) */
+    public function acceptedOffer(): HasOne
+    {
+        return $this->hasOne(Offer::class, 'service_request_id')->where('status', 'accepted');
     }
 
     public function rating(): HasOne

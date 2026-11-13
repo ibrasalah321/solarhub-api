@@ -39,6 +39,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Store owner payout & settlements endpoints
     Route::get('/my/store-payouts', [StorePayoutController::class, 'myPayouts']);
     Route::get('/my/store-payouts/summary', [StorePayoutController::class, 'summary']);
+    Route::post('/my/store-payouts/request', [StorePayoutController::class, 'requestWithdrawal'])
+        ->middleware(['role:supplier', 'approved']);
     Route::get('/store_payouts', [StorePayoutController::class, 'index']);
 
     Route::middleware('permission:store-payouts.manage')->group(function () {
