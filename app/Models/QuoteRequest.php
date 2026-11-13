@@ -24,6 +24,7 @@ class QuoteRequest extends Model
         'store_notes',
         'responded_at',
         'accepted_at',
+        'order_id',
     ];
 
     protected function casts(): array
@@ -32,6 +33,7 @@ class QuoteRequest extends Model
             'customer_id' => 'integer',
             'store_product_id' => 'integer',
             'quantity' => 'integer',
+            'order_id' => 'integer',
             'customer_target_price' => 'decimal:2',
             'offered_unit_price' => 'decimal:2',
             'total_price' => 'decimal:2',
@@ -45,6 +47,12 @@ class QuoteRequest extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'customer_id');
+    }
+
+    /** طلب الشراء الذي أُنشئ عند قبول العرض */
+    public function order(): BelongsTo
+    {
+        return $this->belongsTo(Order::class, 'order_id');
     }
 
     public function storeProduct(): BelongsTo

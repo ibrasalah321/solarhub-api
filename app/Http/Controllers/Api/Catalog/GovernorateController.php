@@ -15,13 +15,18 @@ class GovernorateController extends Controller
 
     public function index()
     {
-        $governorates = Governorate::query()
-            ->where('is_active', true)
-            ->orderBy('name_ar')
-            ->get();
+        $governorates = \App\Support\PublicCatalogCache::remember(
+            \App\Support\PublicCatalogCache::GOVERNORATES,
+            fn () => GovernorateResource::collection(
+                Governorate::query()
+                    ->where('is_active', true)
+                    ->orderBy('name_ar')
+                    ->get()
+            )->resolve()
+        );
 
         return $this->successResponse(
-            GovernorateResource::collection($governorates),
+            $governorates,
             'Governorates retrieved successfully.'
         );
     }

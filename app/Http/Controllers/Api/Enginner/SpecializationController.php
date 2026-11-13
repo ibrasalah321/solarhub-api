@@ -19,15 +19,21 @@ class SpecializationController extends Controller
 
     public function index()
     {
-        $specializations = Specialization::query()
-            ->when(!request()->boolean('all') && !request()->user()?->hasRole('admin'), function ($query) {
-                $query->where('is_active', true);
-            })
-            ->orderBy('id', 'asc')
-            ->get();
+        $includeInactive = request()->boolean('all') || (bool) request()->user()?->hasRole('admin');
+
+        $specializations = \App\Support\PublicCatalogCache::remember(
+            \App\Support\PublicCatalogCache::SPECIALIZATIONS,
+            fn () => SpecializationResource::collection(
+                Specialization::query()
+                    ->when(! $includeInactive, fn ($query) => $query->where('is_active', true))
+                    ->orderBy('id', 'asc')
+                    ->get()
+            )->resolve(),
+            $includeInactive ? 'all' : 'default'
+        );
 
         return $this->successResponse(
-            SpecializationResource::collection($specializations),
+            $specializations,
             'Specializations retrieved successfully.'
         );
     }

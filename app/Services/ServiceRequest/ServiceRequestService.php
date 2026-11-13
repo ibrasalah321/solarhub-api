@@ -45,6 +45,7 @@ class ServiceRequestService
                 'serviceType',
                 'governorate',
                 'offers.engineer.user',
+                'rating',
             ])
             ->when($filters['status'] ?? null, function ($query, $status) {
                 $query->where('status', $status);
@@ -80,7 +81,7 @@ class ServiceRequestService
                 'customer',
                 'serviceType',
                 'governorate',
-                'offers',
+                'offers.engineer.user:id,name',
             ])
             ->when($filters['status'] ?? null, function ($query, $status) {
                 $query->where('status', $status);

@@ -18,4 +18,4 @@ Route::get('/geo/reverse-geocode', function (\Illuminate\Http\Request $request, 
         'status' => 'success',
         'data' => $service->reverseGeocode((float) $request->input('lat'), (float) $request->input('lng')),
     ]);
-});
+})->middleware('throttle:geocode');

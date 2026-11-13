@@ -18,7 +18,8 @@ class EngineerRatingController extends Controller
     use ApiResponseTrait;
 
     public function __construct(
-        private readonly EngineerRatingService $ratingService
+        private readonly EngineerRatingService $ratingService,
+        private readonly \App\Services\Notification\DomainNotificationDispatcher $notifications
     ) {}
 
     /**
@@ -52,13 +53,22 @@ class EngineerRatingController extends Controller
         );
     }
 
-    public function store(StoreEngineerRatingRequest $request, ServiceRequest $serviceRequest)
+    /**
+     * POST /engineer-ratings — العميل يقيّم المهندس مرة واحدة بعد اكتمال طلب الخدمة.
+     * (الملكية والاكتمال وعدم التكرار تُفحص في EngineerRatingService)
+     */
+    public function store(StoreEngineerRatingRequest $request)
     {
+        $data = $request->validated();
+        $serviceRequest = ServiceRequest::query()->findOrFail($data['service_request_id']);
+
         $rating = $this->ratingService->create(
             $request->user(),
             $serviceRequest,
-            $request->validated()
+            $data
         );
+
+        $this->notifications->engineerRated($request->user(), $rating);
 
         return $this->successResponse(
             new EngineerRatingResource($rating),

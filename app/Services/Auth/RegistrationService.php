@@ -106,7 +106,7 @@ class RegistrationService
     }
 
     /**
-     * @return array{user: User, plain_code: string}
+     * @return array{user: User, plain_code: string, replaced_files: list<string>}
      */
     private function createAccount(
         array $data,
@@ -123,60 +123,66 @@ class RegistrationService
             $email = mb_strtolower(trim($data['email']));
             $phone = trim($data['phone']);
 
-            // 1. Double check verified unique constraints
-            $verifiedEmailUser = User::query()
-                ->where('email', $email)
-                ->whereNotNull('email_verified_at')
-                ->whereNull('deleted_at')
-                ->first();
+            // كل الحسابات (بما فيها المحذوفة ناعماً) التي تستخدم نفس البريد أو نفس الجوال: استعلامان فقط
+            // بدل خمسة، والقرارات تُتخذ في الذاكرة (كل استعلام ~0.3 ثانية مع القاعدة البعيدة).
+            $emailUsers = User::withTrashed()->where('email', $email)->get();
+            $phoneUsers = User::withTrashed()->where('phone', $phone)->get();
 
-            if ($verifiedEmailUser) {
+            // 1. Double check verified unique constraints
+            if ($emailUsers->contains(fn (User $u) => $u->email_verified_at !== null && ! $u->trashed())) {
                 throw ValidationException::withMessages([
                     'email' => ['البريد الإلكتروني مسجل ومفعل بالفعل، يرجى تسجيل الدخول مباشرة.'],
                 ]);
             }
 
-            $verifiedPhoneUser = User::query()
-                ->where('phone', $phone)
-                ->whereNotNull('email_verified_at')
-                ->whereNull('deleted_at')
-                ->first();
-
-            if ($verifiedPhoneUser) {
+            if ($phoneUsers->contains(fn (User $u) => $u->email_verified_at !== null && ! $u->trashed())) {
                 throw ValidationException::withMessages([
                     'phone' => ['رقم الجوال مسجل ومفعل بالفعل بحساب آخر.'],
                 ]);
             }
 
+            // البريد مستخدم في حساب مفعّل محذوف حذفاً ناعماً → خطأ واضح بدل خطأ 500 من قيد unique
+            if ($emailUsers->contains(fn (User $u) => $u->email_verified_at !== null && $u->trashed())) {
+                throw ValidationException::withMessages([
+                    'email' => ['البريد الإلكتروني مرتبط بحساب محذوف، يرجى التواصل مع الدعم لاستعادته.'],
+                ]);
+            }
+
             // 2. Find existing unverified user by email (even if trashed)
-            $existingUser = User::withTrashed()
-                ->where('email', $email)
-                ->whereNull('email_verified_at')
-                ->first();
+            $existingUser = $emailUsers->first(fn (User $u) => $u->email_verified_at === null);
 
             if ($existingUser && $existingUser->trashed()) {
                 $existingUser->restore();
             }
 
-            // 3. Clean up any conflicting unverified/trashed user holding this phone number
-            $conflictingUsers = User::withTrashed()
-                ->where('phone', $phone)
-                ->where(function ($q) {
-                    $q->whereNull('email_verified_at')
-                        ->orWhereNotNull('deleted_at');
-                })
-                ->when($existingUser, fn ($q) => $q->where('id', '!=', $existingUser->id))
-                ->get();
+            // 3. رقم الجوال محجوز لحساب آخر؟
+            //    - حساب غير مفعّل ولا يملك أي بيانات: نحذفه (تسجيل مهجور).
+            //    - حساب مفعّل محذوف حذفاً ناعماً أو له بيانات: لا نحذف شيئاً نهائياً،
+            //      بل نرفض التسجيل (سابقاً كان يُحذف نهائياً مع متجره ومحافظه).
+            $conflictingUsers = $phoneUsers->reject(fn (User $u) => $existingUser && $u->id === $existingUser->id);
 
             foreach ($conflictingUsers as $cUser) {
+                $isAbandonedSignup = $cUser->email_verified_at === null
+                    && ! $cUser->store()->exists()
+                    && ! $cUser->orders()->exists()
+                    && ! $cUser->serviceRequests()->exists()
+                    && ! $cUser->userWallets()->exists();
+
+                if (! $isAbandonedSignup) {
+                    throw ValidationException::withMessages([
+                        'phone' => ['رقم الجوال مرتبط بحساب سابق، يرجى التواصل مع الدعم أو استخدام رقم آخر.'],
+                    ]);
+                }
+
                 $cUser->emailOtps()->delete();
+                $cUser->engineerProfile()?->delete();
                 $cUser->forceDelete();
             }
 
             // 4. Resolve governorate_id if available
             $govId = $data['governorate_id'] ?? null;
             if (! $govId && ! empty($data['governorate'])) {
-                $govName = trim($data['governorate']);
+                $govName = str_replace(['%', '_'], ['\\%', '\\_'], trim($data['governorate']));
                 $gov = Governorate::query()
                     ->where('name_ar', 'like', "%{$govName}%")
                     ->orWhere('name_en', 'like', "%{$govName}%")
@@ -188,7 +194,32 @@ class RegistrationService
 
             $coords = $data['default_coordinates'] ?? $data['location_coordinates'] ?? null;
 
+            // ملفات طلب الانضمام السابقة التي سيستبدلها التسجيل الجديد؛ تُحذف من التخزين بعد نجاح المعاملة.
+            $replacedFiles = [];
+
             if ($existingUser) {
+                // إعادة التسجيل بنوع حساب مختلف عن طلب انضمام قائم (متجر/ملف مهندس) كانت ستترك طلباً معلّقاً
+                // يتيماً في قائمة المراجعة لدى الإدارة، لذلك نرفضها برسالة واضحة بدل تغيير الدور بصمت.
+                $existingUser->loadMissing(['store', 'engineerProfile']);
+                $pendingAs = match (true) {
+                    $existingUser->store !== null && $role !== 'supplier' => 'مورد',
+                    $existingUser->engineerProfile !== null && $role !== 'engineer' => 'مهندس',
+                    default => null,
+                };
+
+                if ($pendingAs !== null) {
+                    throw ValidationException::withMessages([
+                        'email' => ["هذا البريد مسجّل مسبقاً كحساب {$pendingAs} ولم يُفعّل بعد. فعّل الحساب برمز التحقق، أو سجّل بنفس نوع الحساب."],
+                    ]);
+                }
+
+                if ($createApplication && $uploadedPath !== null) {
+                    $replacedFiles = array_values(array_filter([
+                        $role === 'supplier' ? $existingUser->store?->commercial_file_path : null,
+                        $role === 'engineer' ? $existingUser->engineerProfile?->cv_path : null,
+                    ], fn ($path) => $path && $path !== $uploadedPath));
+                }
+
                 $existingUser->update([
                     'name' => $data['name'],
                     'phone' => $phone,
@@ -214,34 +245,45 @@ class RegistrationService
                 $user->assignRole($role);
             }
 
+            // حساب جديد كلياً: لا ملف مهندس ولا متجر سابق، فنُنشئ مباشرة بدل updateOrCreate (select + insert)
+            // ونربط العلاقات في الذاكرة لاستجابة التسجيل بدل إعادة تحميلها.
+            $isNewUser = $existingUser === null;
+            $profile = null;
+            $store = null;
+
             if ($createApplication && $role === 'engineer') {
-                EngineerProfile::query()->updateOrCreate(
-                    ['user_id' => $user->id],
-                    [
-                        'license_number' => $data['license_number'] ?? null,
-                        'cv_path' => $uploadedPath,
-                        'approval_status' => 'pending',
-                        'rejection_reason' => null,
-                        'approved_at' => null,
-                    ]
-                );
+                $profileData = [
+                    'license_number' => $data['license_number'] ?? null,
+                    'cv_path' => $uploadedPath,
+                    'approval_status' => 'pending',
+                    'rejection_reason' => null,
+                    'approved_at' => null,
+                ];
+                $profile = $isNewUser
+                    ? EngineerProfile::query()->create(['user_id' => $user->id] + $profileData)
+                    : EngineerProfile::query()->updateOrCreate(['user_id' => $user->id], $profileData);
             }
 
             if ($createApplication && $role === 'supplier') {
-                Store::query()->updateOrCreate(
-                    ['user_id' => $user->id],
-                    [
-                        'company_name' => $data['company_name'] ?? null,
-                        'commercial_registry' => $data['commercial_registry'] ?? null,
-                        'commercial_file_path' => $uploadedPath,
-                        'store_type' => $data['store_type'] ?? null,
-                        'address_details' => $data['address_details'] ?? null,
-                        'approval_status' => 'pending',
-                        'rejection_reason' => null,
-                        'approved_at' => null,
-                        'location_coordinates' => $coords,
-                    ]
-                );
+                $storeData = [
+                    'company_name' => $data['company_name'] ?? null,
+                    'commercial_registry' => $data['commercial_registry'] ?? null,
+                    'commercial_file_path' => $uploadedPath,
+                    'store_type' => $data['store_type'] ?? null,
+                    'address_details' => $data['address_details'] ?? null,
+                    'approval_status' => 'pending',
+                    'rejection_reason' => null,
+                    'approved_at' => null,
+                    'location_coordinates' => $coords,
+                ];
+                $store = $isNewUser
+                    ? Store::query()->create(['user_id' => $user->id] + $storeData)
+                    : Store::query()->updateOrCreate(['user_id' => $user->id], $storeData);
+            }
+
+            if ($isNewUser) {
+                $user->setRelation('engineerProfile', $profile);
+                $user->setRelation('store', $store);
             }
 
             $otpData = $this->otpService->generate($user);
@@ -249,21 +291,32 @@ class RegistrationService
             return [
                 'user' => $user,
                 'plain_code' => $otpData['plain_code'],
+                'replaced_files' => $replacedFiles,
             ];
         });
     }
 
     /**
-     * @param  array{user: User, plain_code: string}  $result
+     * @param  array{user: User, plain_code: string, replaced_files?: list<string>}  $result
      */
     private function finishRegistration(array $result): User
     {
+        // المعاملة نجحت: احذف ملفات طلب الانضمام القديمة التي استُبدلت (لا نُفشل التسجيل إن تعذّر الحذف).
+        foreach ($result['replaced_files'] ?? [] as $path) {
+            try {
+                $this->storageService->deletePrivate($path);
+            } catch (Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("Could not delete replaced registration file {$path}: {$e->getMessage()}");
+            }
+        }
+
         $this->otpService->sendOtpEmail(
             $result['user'],
             $result['plain_code']
         );
 
-        return $result['user']->load([
+        // العلاقات المربوطة في الذاكرة (حساب جديد) لا يُعاد تحميلها
+        return $result['user']->loadMissing([
             'roles',
             'engineerProfile',
             'store',

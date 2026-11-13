@@ -35,6 +35,7 @@ class OrderStoreService
             ->with([
                 'order.customer',
                 'order.governorate',
+                'order.payments',
                 'items.storeProduct.masterProduct.images',
                 'items.storeProduct.masterProduct.brand',
                 'items.storeProduct.masterProduct.category',
@@ -59,6 +60,24 @@ class OrderStoreService
             "Cannot move an order from '{$orderStore->status}' to '{$newStatus}'."
         );
 
+        // كل الطلبات مدفوعة مسبقاً: يُسمح بالقبول والتجهيز قبل الدفع، لكن الشحن فقط بعد أن
+        // تغطي الدفعات المعتمدة (verified) إجمالي الطلب الرئيسي.
+        if ($newStatus === 'shipped') {
+            $order = $orderStore->order()->with('payments')->firstOrFail();
+            $payment = $order->paymentSummary();
+
+            abort_unless(
+                $payment['status'] === 'paid',
+                422,
+                match ($payment['status']) {
+                    'under_review' => 'لا يمكن شحن الطلب قبل اعتماد الدفعة: إيصال الدفع قيد المراجعة من الإدارة.',
+                    default => $payment['verified_total'] > 0
+                        ? 'لا يمكن شحن الطلب: الدفعات المعتمدة ('.number_format($payment['verified_total'], 2).') لا تغطي إجمالي الطلب ('.number_format($payment['total'], 2).').'
+                        : 'لا يمكن شحن الطلب قبل أن يدفع العميل وتعتمد الإدارة الدفعة.',
+                }
+            );
+        }
+
         return DB::transaction(function () use ($orderStore, $newStatus, $notes) {
             if (in_array($newStatus, self::STOCK_RESTORING_STATUSES, true)) {
                 $orderStore->loadMissing('items');
@@ -74,9 +93,12 @@ class OrderStoreService
                 'delivered_at' => $newStatus === 'delivered' ? now() : $orderStore->delivered_at,
             ]);
 
+            $this->syncParentOrderStatus($orderStore);
+
             return $orderStore->load([
                 'order.customer',
                 'order.governorate',
+                'order.payments',
                 'items.storeProduct.masterProduct.images',
                 'items.storeProduct.masterProduct.brand',
                 'items.storeProduct.masterProduct.category',
@@ -101,12 +123,46 @@ class OrderStoreService
             'Only a delivered order can be confirmed as completed.'
         );
 
-        $orderStore->update([
-            'status' => 'completed',
-            'customer_confirmed_at' => now(),
-        ]);
+        DB::transaction(function () use ($orderStore) {
+            $orderStore->update([
+                'status' => 'completed',
+                'customer_confirmed_at' => now(),
+            ]);
+
+            $this->syncParentOrderStatus($orderStore);
+        });
 
         return $orderStore->load(['order.customer', 'items.storeProduct.masterProduct']);
+    }
+
+    /**
+     * تحديث حالة الطلب الرئيسي بناءً على حالات طلباته الفرعية.
+     * (سابقاً كانت حالة الطلب الرئيسي تبقى pending للأبد.)
+     */
+    public function syncParentOrderStatus(OrderStore $orderStore): void
+    {
+        $order = $orderStore->order()->lockForUpdate()->first();
+
+        if (! $order || $order->status === 'cancelled') {
+            return;
+        }
+
+        $statuses = $order->orderStores()->pluck('status');
+        $closed = ['cancelled', 'rejected'];
+
+        if ($statuses->every(fn ($s) => in_array($s, $closed, true))) {
+            $newStatus = 'cancelled';
+        } elseif ($statuses->every(fn ($s) => in_array($s, ['completed', ...$closed], true))) {
+            $newStatus = 'completed';
+        } elseif ($statuses->contains(fn ($s) => in_array($s, ['accepted', 'shipped', 'delivered', 'completed'], true))) {
+            $newStatus = 'processing';
+        } else {
+            $newStatus = 'pending';
+        }
+
+        if ($order->status !== $newStatus) {
+            $order->update(['status' => $newStatus]);
+        }
     }
 
     private function restoreStock(int $storeProductId, int $quantity): void

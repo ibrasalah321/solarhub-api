@@ -105,8 +105,8 @@ class RegisterRequest extends FormRequest
             'governorate_id' => ['nullable', 'integer'],
             'city' => ['nullable', 'string', 'max:100'],
             'address_details' => ['nullable', 'string'],
-            'default_coordinates' => ['nullable', 'string'],
-            'location_coordinates' => ['nullable', 'string'],
+            'default_coordinates' => ['nullable', new \App\Rules\GeographyPoint()],
+            'location_coordinates' => ['nullable', new \App\Rules\GeographyPoint()],
             'company_name' => ['nullable', 'string', 'max:150'],
             'license_number' => ['nullable', 'string', 'max:100'],
             'commercial_registry' => ['nullable', 'string', 'max:100'],
@@ -117,8 +117,8 @@ class RegisterRequest extends FormRequest
             'commercialRegisterFile' => ['nullable', 'file', 'max:10240'],
             'governorate_id' => ['nullable', 'integer', 'exists:governorates,id'],
             'governorate' => ['nullable', 'string', 'max:100'],
-            'default_coordinates' => ['nullable', 'string', 'max:255'],
-            'location_coordinates' => ['nullable', 'string', 'max:255'],
+            'default_coordinates' => ['nullable', new \App\Rules\GeographyPoint()],
+            'location_coordinates' => ['nullable', new \App\Rules\GeographyPoint()],
         ];
     }
 

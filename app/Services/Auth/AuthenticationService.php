@@ -21,15 +21,10 @@ class AuthenticationService
     {
         $user = $this->findByLogin($credentials['login']);
 
-        if ($user === null) {
+        // رسالة واحدة للحالتين حتى لا يُكشف وجود الحساب من عدمه.
+        if ($user === null || ! Hash::check($credentials['password'], $user->password)) {
             throw ValidationException::withMessages([
-                'login' => ['No account was found with these credentials.'],
-            ]);
-        }
-
-        if (! Hash::check($credentials['password'], $user->password)) {
-            throw ValidationException::withMessages([
-                'password' => ['The password is incorrect.'],
+                'login' => ['بيانات الدخول غير صحيحة.'],
             ]);
         }
 

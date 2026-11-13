@@ -52,7 +52,7 @@ class PasswordResetService
     private function messageFor(string $status): string
     {
         return match ($status) {
-            PasswordBroker::INVALID_USER => 'We could not find an account with that email address.',
+            PasswordBroker::INVALID_USER => 'This password reset token is invalid or has expired.',
             PasswordBroker::INVALID_TOKEN => 'This password reset token is invalid or has expired.',
             PasswordBroker::RESET_THROTTLED => 'Please wait before retrying this password reset.',
             default => 'Unable to reset the password. Please request a new reset link.',

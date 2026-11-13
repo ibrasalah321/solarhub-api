@@ -13,7 +13,11 @@ trait ApiResponseTrait
         ], $code);
     }
 
-    protected function errorResponse($data, $message, $code)
+    /**
+     * كل الاستدعاءات في المشروع تمرر الرسالة أولاً: errorResponse('msg', null, 404).
+     * التوقيع السابق ($data, $message) كان يضع الرسالة في data وnull في message.
+     */
+    protected function errorResponse($message, $data = null, $code = 400)
     {
         return response()->json([
             'status' => 'error',

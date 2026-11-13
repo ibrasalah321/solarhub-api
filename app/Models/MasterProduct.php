@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\FlushesPublicCatalogCache;
+use App\Support\PublicCatalogCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,6 +11,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class MasterProduct extends Model
 {
+    use FlushesPublicCatalogCache;
+
+    // عدد المنتجات يظهر في قوائم العلامات والتصنيفات العامة
+    public static function publicCatalogCacheGroups(): array
+    {
+        return [PublicCatalogCache::BRANDS, PublicCatalogCache::CATEGORIES];
+    }
+
     use HasFactory;
 
     protected $table = 'master_products';

@@ -23,7 +23,7 @@ class StoreController extends Controller
         $page = (int) request()->input('page', 1);
         $cacheKey = "public_stores_page_{$page}_{$perPage}";
 
-        $stores = \Illuminate\Support\Facades\Cache::remember($cacheKey, now()->addHours(12), function () use ($perPage) {
+        $stores = \App\Support\PublicCache::remember($cacheKey, function () use ($perPage) {
             return Store::query()
                 ->select([
                     'id',

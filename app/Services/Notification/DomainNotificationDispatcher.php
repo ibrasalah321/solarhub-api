@@ -355,6 +355,70 @@ class DomainNotificationDispatcher
         );
     }
 
+    /** المهندس بدأ التنفيذ ← العميل */
+    public function serviceStarted(User $engineer, ServiceRequest $serviceRequest): void
+    {
+        $this->notifications->sendAfterCommit(
+            [$serviceRequest->customer],
+            'service_started_customer',
+            ['engineer_name' => $engineer->name, 'service_request_id' => $serviceRequest->id],
+            "service-started:{$serviceRequest->id}",
+            $engineer,
+            "/service-requests/{$serviceRequest->id}"
+        );
+    }
+
+    /** المهندس أبلغ بإنهاء العمل ← العميل (ليؤكد الاكتمال) */
+    public function serviceMarkedDone(User $engineer, ServiceRequest $serviceRequest): void
+    {
+        $this->notifications->sendAfterCommit(
+            [$serviceRequest->customer],
+            'service_marked_done_customer',
+            ['engineer_name' => $engineer->name, 'service_request_id' => $serviceRequest->id],
+            "service-marked-done:{$serviceRequest->id}",
+            $engineer,
+            "/service-requests/{$serviceRequest->id}"
+        );
+    }
+
+    /** العميل أكد الاكتمال ← المهندس صاحب العرض المقبول */
+    public function serviceCompleted(User $customer, ServiceRequest $serviceRequest): void
+    {
+        $engineerUser = $serviceRequest->acceptedOffer()->with('engineer.user')->first()?->engineer?->user;
+
+        if (! $engineerUser) {
+            return;
+        }
+
+        $this->notifications->sendAfterCommit(
+            [$engineerUser],
+            'service_completed_engineer',
+            ['customer_name' => $customer->name, 'service_request_id' => $serviceRequest->id],
+            "service-completed:{$serviceRequest->id}",
+            $customer,
+            "/service-requests/{$serviceRequest->id}"
+        );
+    }
+
+    /** العميل قيّم المهندس ← المهندس */
+    public function engineerRated(User $customer, \App\Models\EngineerRating $rating): void
+    {
+        $engineerUser = $rating->engineer?->user;
+
+        if (! $engineerUser) {
+            return;
+        }
+
+        $this->notifications->sendAfterCommit(
+            [$engineerUser],
+            'engineer_rated_engineer',
+            ['customer_name' => $customer->name, 'service_request_id' => $rating->service_request_id, 'rating' => $rating->rating],
+            "engineer-rated:{$rating->id}",
+            $customer,
+            '/engineer/reviews'
+        );
+    }
+
     private function admins()
     {
         return User::role('admin')->get();

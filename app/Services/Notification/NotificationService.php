@@ -5,7 +5,9 @@ namespace App\Services\Notification;
 use App\Models\Notification;
 use App\Models\NotificationTemplate;
 use App\Models\User;
+use App\Support\NotificationRecipients;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -13,6 +15,26 @@ use Illuminate\Validation\ValidationException;
 
 class NotificationService
 {
+    /**
+     * قوالب الإشعارات المفعّلة المحمّلة في هذا الطلب (false = غير موجود/غير مفعّل).
+     * كل استعلام يكلّف ~0.3 ثانية أو أكثر مع القاعدة البعيدة، والقالب كان يُجلب مرتين لكل إشعار.
+     *
+     * @var array<string, NotificationTemplate|false>
+     */
+    private array $activeTemplates = [];
+
+    private function activeTemplate(string $code): ?NotificationTemplate
+    {
+        if (! array_key_exists($code, $this->activeTemplates)) {
+            $this->activeTemplates[$code] = NotificationTemplate::query()
+                ->where('code', $code)
+                ->where('is_active', true)
+                ->first() ?? false;
+        }
+
+        return $this->activeTemplates[$code] ?: null;
+    }
+
     public function inbox(
         User $user,
         bool $unreadOnly = false,
@@ -105,17 +127,16 @@ class NotificationService
         ?string $actionUrl = null,
         bool $systemGenerated = false
     ): Collection {
-        $template = NotificationTemplate::query()
-            ->where('code', $templateCode)
-            ->where('is_active', true)
-            ->firstOrFail();
+        $template = $this->activeTemplate($templateCode)
+            ?? throw (new ModelNotFoundException)->setModel(NotificationTemplate::class, [$templateCode]);
 
         $this->validateVariables($template, $placeholders);
 
         $eventId = (string) Str::uuid();
         $created = new Collection;
 
-        foreach (collect($recipients)->unique('id') as $recipient) {
+        // NOTIFY_ONLY_TEST_ACCOUNTS: في التطوير تصل الإشعارات للحسابات التجريبية فقط
+        foreach (NotificationRecipients::filter($recipients, $templateCode)->unique('id') as $recipient) {
             $dedupeKey = hash('sha256', implode('|', [
                 User::class,
                 $recipient->id,
@@ -123,7 +144,11 @@ class NotificationService
                 $eventKey,
             ]));
 
-            $notification = Notification::query()->firstOrCreate(
+            // خارج المعاملات (مسار sendAfterCommit): createOrFirst يُدرج مباشرة (استعلام واحد) ولا يقرأ إلا عند
+            // تعارض dedupe_key (قيد unique). داخل معاملة يحتاج savepoint إضافياً، فنُبقي firstOrCreate.
+            $method = DB::transactionLevel() === 0 ? 'createOrFirst' : 'firstOrCreate';
+
+            $notification = Notification::query()->{$method}(
                 ['dedupe_key' => $dedupeKey],
                 [
                     'type' => $template->type,
@@ -167,31 +192,28 @@ class NotificationService
         ?string $actionUrl = null,
         bool $systemGenerated = false
     ): void {
-        if (! NotificationTemplate::query()
-            ->where('code', $templateCode)
-            ->where('is_active', true)
-            ->exists()) {
+        if (! $this->activeTemplate($templateCode)) {
             return;
         }
 
-        $recipientIds = collect($recipients)->pluck('id')->unique()->values()->all();
-        $senderId = $sender?->id;
+        // المستلمون والمرسل نماذج محمّلة أصلاً؛ لا داعي لإعادة جلبهم من القاعدة بعد الـ commit.
+        $recipientModels = collect($recipients)->filter()->unique('id')->values();
 
         DB::afterCommit(function () use (
-            $recipientIds,
+            $recipientModels,
             $templateCode,
             $placeholders,
             $eventKey,
-            $senderId,
+            $sender,
             $actionUrl,
             $systemGenerated
         ): void {
             $this->sendToUsers(
-                User::query()->whereIn('id', $recipientIds)->get(),
+                $recipientModels,
                 $templateCode,
                 $placeholders,
                 $eventKey,
-                $senderId ? User::query()->find($senderId) : null,
+                $sender,
                 $actionUrl,
                 $systemGenerated
             );

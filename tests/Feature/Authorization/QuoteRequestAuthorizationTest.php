@@ -85,11 +85,11 @@ class QuoteRequestAuthorizationTest extends TestCase
     public function test_quote_owner_can_accept_response(): void
     {
         [$quote, $customer] = $this->createQuote();
-        $quote->update(['status' => 'responded']);
+        $quote->update(['status' => 'responded', 'offered_unit_price' => 90, 'total_price' => 90]);
 
         Sanctum::actingAs($customer);
 
-        $this->patchJson("/api/quote-requests/{$quote->id}/accept")
+        $this->patchJson("/api/quote-requests/{$quote->id}/accept", ['delivery_address' => 'Test address'])
             ->assertOk();
 
         $this->assertDatabaseHas('quote_requests', [
